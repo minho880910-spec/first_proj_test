@@ -1,0 +1,27 @@
+# 가상환경
+.venv/
+venv/
+env/
+
+# 보안 (환경변수)
+.env
+*.env
+
+# Python 캐시 및 컴파일 파일
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# 빌드 및 배포 관련
+dist/
+build/
+*.egg-info/
+
+# 에디터 및 OS 관련
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 기타 프로젝트 관련 (NiceGUI 등 사용 시 생길 수 있는 로그)
+*.log
