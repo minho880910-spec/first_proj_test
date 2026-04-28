@@ -3,6 +3,7 @@ from modules.database import init_db
 from views.sidebar import render_sidebar
 from views.home import render_home
 from views.result import render_result
+from views.popular import render_popular
 from views.trends import render_trends
 from views.history import render_history
 
@@ -54,6 +55,8 @@ if st.session_state.current_view == 'home':
     render_home()
 elif st.session_state.current_view == 'result':
     render_result()
+elif st.session_state.current_view == 'popular':
+    render_popular()
 elif st.session_state.current_view == 'trends':
     render_trends()
 elif st.session_state.current_view == 'history':
