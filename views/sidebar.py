@@ -22,25 +22,36 @@ def render_sidebar():
         st.write("---")
         
         # Buttons
+        if st.button("🏠 첫 화면으로", use_container_width=True):
+            st.session_state.current_view = 'home'
+            
         if st.button("📢 콘텐츠 제작", type="primary", use_container_width=True):
             if category and title:
                 with st.spinner("콘텐츠를 생성 중입니다..."):
-                    results = generate_content(category, title, tone)
-                    st.session_state.results = results
-                    st.session_state.current_view = 'result'
-                    # Save to history
-                    add_history(category, title, tone, results.get('instagram', ''), results.get('threads', ''), results.get('x', ''))
+                    try:
+                        st.session_state.last_keyword = title
+                        results = generate_content(category, title, tone)
+                        st.session_state.results = results
+                        st.session_state.current_view = 'result'
+                        # Save to history
+                        add_history(category, title, tone, results.get('instagram', ''), results.get('threads', ''), results.get('x', ''))
+                    except Exception as e:
+                        if "AuthenticationError" in str(type(e)) or "Incorrect API key" in str(e):
+                            st.error("OpenAI API 키가 올바르지 않습니다. .env 파일에 실제 API 키를 입력해주세요.")
+                        else:
+                            st.error(f"콘텐츠 생성 중 오류가 발생했습니다: {e}")
             else:
                 st.warning("카테고리와 프롬프트를 모두 입력해주세요.")
                 
         if st.button("📈 최신 트렌드", use_container_width=True):
-            if category:
-                with st.spinner("트렌드 데이터를 가져오는 중..."):
-                    trend_data = get_trend_summary(category)
+            search_keyword = st.session_state.get('last_keyword', title)
+            if search_keyword:
+                with st.spinner(f"'{search_keyword}' 트렌드 데이터를 가져오는 중..."):
+                    trend_data = get_trend_summary(search_keyword)
                     st.session_state.trend_data = trend_data
                     st.session_state.current_view = 'trends'
             else:
-                st.warning("트렌드를 검색할 카테고리를 입력해주세요.")
+                st.warning("트렌드를 검색할 키워드를 입력하거나 콘텐츠를 먼저 생성해주세요.")
                 
         if st.button("🕒 히스토리", use_container_width=True):
             st.session_state.current_view = 'history'
