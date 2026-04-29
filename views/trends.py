@@ -3,7 +3,7 @@ import altair as alt
 from modules.trend_analyzer import get_trend_summary
 
 def render_trends():
-    st.header("📈 키워드 트렌드 분석")
+    st.header("📈 최신 트렌드")
     
     categories = [
         "화장품/뷰티", "IT/가전", "패션/의류", "식품/건강", 
