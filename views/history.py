@@ -2,7 +2,7 @@ import streamlit as st
 from modules.database import get_all_history, delete_history, clear_all_history
 
 def render_history():
-    """카테고리를 제외하고 생성 시간과 제목 중심으로 내역을 렌더링합니다."""
+    """톤앤매너 정보를 포함하여 생성 내역을 렌더링합니다."""
     
     st.header("포스팅 생성 내역")
     
@@ -26,12 +26,13 @@ def render_history():
 
         # 2. 개별 히스토리 출력 루프
         for index, row in df.iterrows():
-            # [수정 포인트] 카테고리(row['category'])를 제외하고 시간과 제목만 헤더에 표시
-            header_text = f"[{row['created_at']}] {row['title']}"
+            # [수정 포인트] 생성 시간 뒤에 [톤앤매너] 정보를 추가하여 제목(프롬프트)과 구분
+            # 예: [2026-04-29 11:46:04] [전문적인] 쿠우쿠우 다녀온 후기...
+            header_text = f"[{row['created_at']}] [{row['tone']}] {row['title']}"
             
             with st.expander(header_text):
                 
-                # 플랫폼별 콘텐츠 영역 (복사 아이콘이 포함된 st.code)
+                # 플랫폼별 콘텐츠 영역
                 st.markdown("#### 📸 Instagram")
                 st.code(row['instagram_content'], language=None)
 
@@ -63,7 +64,8 @@ def render_history():
                     with c1:
                         if st.button("✅ 확정", key=f"yes_{row['id']}", type="primary", use_container_width=True):
                             delete_history(row['id'])
-                            del st.session_state[del_confirm_key]
+                            if del_confirm_key in st.session_state:
+                                del st.session_state[del_confirm_key]
                             st.toast("기록이 삭제되었습니다.")
                             st.rerun()
                     with c2:
