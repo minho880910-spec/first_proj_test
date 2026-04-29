@@ -4,6 +4,11 @@ from modules.llm_engine import generate_content
 from modules.trend_analyzer import get_trend_summary
 
 def render_sidebar():
+    def change_view(view):
+        st.session_state.current_view = view
+        if view == 'result' and st.session_state.get("prompt_input"):
+            st.session_state.auto_generate = True
+
     with st.sidebar:
         st.markdown("""
             <style>
@@ -38,8 +43,7 @@ def render_sidebar():
             </style>
         """, unsafe_allow_html=True)
         st.markdown('<div class="logo-btn-marker"></div>', unsafe_allow_html=True)
-        if st.button("✨ 지피지기", key="logo_btn"):
-            st.session_state.current_view = 'home'
+        st.button("✨ 지피지기", key="logo_btn", on_click=change_view, args=('home',))
         st.caption("포스팅 자동 생성기")
         st.write("---")
 
@@ -53,16 +57,7 @@ def render_sidebar():
 
         st.write("---")
         st.markdown("### 📌 메뉴")
-        if st.button("📢 콘텐츠 제작", use_container_width=True):
-            st.session_state.current_view = 'result'
-            if st.session_state.get("prompt_input"):
-                st.session_state.auto_generate = True
-            
-        if st.button("🔥 인기 포스팅", use_container_width=True):
-            st.session_state.current_view = 'popular'
-            
-        if st.button("📈 최신 트렌드", use_container_width=True):
-            st.session_state.current_view = 'trends'
-
-        if st.button("🕒 포스팅 생성내역", use_container_width=True):
-            st.session_state.current_view = 'history'
+        st.button("📢 콘텐츠 제작", use_container_width=True, on_click=change_view, args=('result',))
+        st.button("🔥 인기 포스팅", use_container_width=True, on_click=change_view, args=('popular',))
+        st.button("📈 최신 트렌드", use_container_width=True, on_click=change_view, args=('trends',))
+        st.button("🕒 히스토리", use_container_width=True, on_click=change_view, args=('history',))
