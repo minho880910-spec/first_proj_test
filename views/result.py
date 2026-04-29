@@ -33,7 +33,13 @@ def render_result():
     """, unsafe_allow_html=True)
     st.header("✨ 콘텐츠 제작")
     
-    tone = st.selectbox("어떤 느낌으로 쓸까요?💬", ["전문적인", "친근한", "유머러스한", "감성적인"], key="tone_select")
+    tone_options = ["전문적인", "친근한", "유머러스한", "감성적인", "직접 입력"]
+    selected_tone = st.selectbox("어떤 느낌으로 쓸까요?💬", tone_options, key="tone_select")
+    
+    if selected_tone == "직접 입력":
+        tone = st.text_input("원하는 톤앤매너를 직접 입력해주세요 ✍️", key="custom_tone_input")
+    else:
+        tone = selected_tone
     
     sns_options = ["Instagram", "Threads", "X (Twitter)"]
     selected_sns = st.multiselect("포스팅 할 SNS 선택", sns_options, default=sns_options, key="sns_select")
@@ -48,6 +54,8 @@ def render_result():
         if title:
             if not selected_sns:
                 st.warning("포스팅 할 SNS를 최소 하나 이상 선택해주세요.")
+            elif selected_tone == "직접 입력" and not tone.strip():
+                st.warning("원하는 톤앤매너를 입력해주세요.")
             else:
                 with st.spinner("콘텐츠를 생성 중입니다..."):
                     # 트렌드 탭에서 선택한 카테고리가 있으면 사용하고, 없으면 기본값 사용
