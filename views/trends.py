@@ -22,14 +22,7 @@ def render_trends():
     prompt_input = st.session_state.get("prompt_input", "").strip()
     main_keyword = prompt_input if prompt_input else category
     
-    period_label = st.session_state.get("trend_period_radio", "월간")
-    period_map = {
-        "일간": "now 1-d",
-        "주간": "now 7-d",
-        "월간": "today 1-m",
-        "연간": "today 12-m"
-    }
-    selected_period = period_map.get(period_label, "today 1-m")
+    selected_period = "now 7-d"
     
     # Fetch main trend data (for the left charts)
     if ('last_main_keyword' not in st.session_state) or \
@@ -58,27 +51,10 @@ def render_trends():
     
     if main_data and isinstance(main_data, dict):
         with col1:
-            header_col1, header_col2 = st.columns([1.5, 1])
-            with header_col1:
-                st.markdown(f"### <span style='color:#0056b3'>{main_keyword}</span> 검색어 순위 근황", unsafe_allow_html=True)
-            with header_col2:
-                # Apply custom CSS to push radio buttons down a bit or use markdown
-                st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
-                st.radio(
-                    "기간 선택", 
-                    options=["일간", "주간", "월간", "연간"], 
-                    horizontal=True, 
-                    label_visibility="collapsed",
-                    key="trend_period_radio"
-                )
+            st.markdown(f"### <span style='color:#0056b3'>{main_keyword}</span> 검색어 순위 근황 (최근 1주일 기준)", unsafe_allow_html=True)
             
             # Line Chart
-            if period_label == "일간":
-                x_format = '%H:%M'
-            elif period_label == "연간":
-                x_format = '%Y-%m'
-            else:
-                x_format = '%m-%d'
+            x_format = '%m-%d'
                 
             df_time = main_data['time_series']
             chart = alt.Chart(df_time).mark_line(color='#00c853', strokeWidth=2).encode(
@@ -87,7 +63,7 @@ def render_trends():
             ).properties(height=350)
             st.altair_chart(chart, use_container_width=True)
             
-            st.markdown("#### 기기별 / 성별 / 연령별 비중 (기간합계)")
+            st.markdown("#### 기기별 / 성별 / 연령별 비중 (최근 1주일 기준)")
             st.write("---")
             subcol1, subcol2, subcol3 = st.columns(3)
             
@@ -126,12 +102,12 @@ def render_trends():
                 
         with keyword_related_container:
             st.markdown(f"#### {main_keyword} 연관 검색어")
-            st.caption("최근 1개월 기준")
+            st.caption("최근 1주일 기준")
             
             main_queries = main_data.get('top_queries', []) if main_data and isinstance(main_data, dict) else []
             
             if main_queries:
-                html_content_main = "<div style='background-color: #e8f5e9; border: 1px solid #c8e6c9; padding: 15px; border-radius: 10px; height: 250px; overflow-y: auto; margin-bottom: 10px;'>"
+                html_content_main = "<div style='background-color: #e8f5e9; border: 1px solid #c8e6c9; padding: 15px; border-radius: 10px; height: 250px; overflow-y: auto; margin-bottom: 10px; color: #333333;'>"
                 for i, q in enumerate(main_queries):
                     if q:
                         html_content_main += f"<div style='margin-bottom: 10px; font-size: 15px;'><strong style='color: #2e7d32; width: 25px; display: inline-block;'>{i+1}</strong> <span>{q}</span></div>"
@@ -142,12 +118,12 @@ def render_trends():
 
         with col2:
             st.markdown("#### 인기검색어")
-            st.caption(f"'{category}' 카테고리 (최근 1개월)")
+            st.caption(f"'{category}' 카테고리 (최근 1주일)")
             
             queries = cat_data.get('top_queries', []) if cat_data and isinstance(cat_data, dict) else []
             
             if queries:
-                html_content = "<div style='background-color: #f9f9fc; border: 1px solid #e0e0e0; padding: 15px; border-radius: 10px; height: 250px; overflow-y: auto;'>"
+                html_content = "<div style='background-color: #f9f9fc; border: 1px solid #e0e0e0; padding: 15px; border-radius: 10px; height: 250px; overflow-y: auto; color: #333333;'>"
                 for i, q in enumerate(queries):
                     if q:
                         html_content += f"<div style='margin-bottom: 10px; font-size: 15px;'><strong style='color: #0056b3; width: 25px; display: inline-block;'>{i+1}</strong> <span>{q}</span></div>"
