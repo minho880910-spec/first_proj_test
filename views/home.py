@@ -6,4 +6,4 @@ def render_home():
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.info("👈 좌측 메뉴에서 카테고리와 프롬프트를 입력하고 콘텐츠 제작을 시작해보세요!")
+        st.info("👈 좌측 사이드바에서 프롬프트를 입력하고 콘텐츠 제작을 시작해보세요!")
