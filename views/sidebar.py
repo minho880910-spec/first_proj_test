@@ -5,6 +5,8 @@ from modules.trend_analyzer import get_trend_summary
 
 def render_sidebar():
     def change_view(view):
+        if st.session_state.get('current_view') != view:
+            st.session_state.is_transitioning = True
         st.session_state.current_view = view
         if view == 'result' and st.session_state.get("prompt_input"):
             st.session_state.auto_generate = True

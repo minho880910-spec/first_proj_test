@@ -99,6 +99,10 @@ def render_popular():
             with st.spinner("프롬프트에서 핵심 키워드를 추출하는 중..."):
                 st.session_state.extracted_keyword = extract_keyword(prompt_input)
                 st.session_state.last_prompt_for_keyword = prompt_input
+            
+            # 입력창 위젯 상태 강제 업데이트
+            st.session_state["no_img_pop_input"] = st.session_state.extracted_keyword
+
         search_query = st.session_state.extracted_keyword
     else:
         search_query = ""
