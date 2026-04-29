@@ -74,6 +74,10 @@ components.html(
 )
 
 # Main Content Area Routing
+if st.session_state.get("is_transitioning"):
+    st.session_state.is_transitioning = False
+    st.rerun()
+
 if st.session_state.current_view == 'home':
     render_home()
 elif st.session_state.current_view == 'result':
