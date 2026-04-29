@@ -8,10 +8,6 @@ from modules.keyword_extractor import extract_keyword
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def classify_category(keyword: str, categories: list) -> str:
-    """
-    추출된 키워드를 주어진 카테고리 목록 중 하나로 분류합니다.
-    매칭되는 카테고리가 없으면 '해당 카테고리 없음'을 반환합니다.
-    """
     if not keyword:
         return "해당 카테고리 없음"
         
@@ -43,71 +39,55 @@ def classify_category(keyword: str, categories: list) -> str:
         print(f"Category classification error: {e}")
         return "해당 카테고리 없음"
 
-def render_trends():
-    st.header("📈 최신 트렌드")
-    
-    categories = [
-        "화장품/뷰티", "IT/가전", "패션/의류", "식품/건강", 
-        "인테리어/가구", "여행/숙박", "금융/재테크", "게임/엔터", 
-        "교육/도서", "자동차/모빌리티", "출산/육아", "반려동물 용품", "취미/스포츠", "해당 카테고리 없음"
-    ]
-    
+def render_trend_tab(tab_name: str, categories: list, prompt_input: str, global_main_keyword: str):
     col1, col2 = st.columns([2.5, 1])
-    
-    prompt_input = st.session_state.get("prompt_input", "").strip()
-    
-    if prompt_input:
-        if ('last_prompt_for_keyword' not in st.session_state) or (st.session_state.last_prompt_for_keyword != prompt_input):
-            with st.spinner("프롬프트에서 핵심 키워드 및 카테고리 분석 중..."):
-                extracted_keyword = extract_keyword(prompt_input)
-                mapped_category = classify_category(extracted_keyword, categories[:-1])
-                
-                st.session_state.extracted_keyword = extracted_keyword
-                st.session_state.trend_category = mapped_category
-                st.session_state.last_prompt_for_keyword = prompt_input
-                
-        main_keyword = st.session_state.extracted_keyword
-    
+
     with col2:
         keyword_related_container = st.container()
         st.divider()
-        category = st.selectbox("카테고리 선택", categories, key="trend_category", label_visibility="collapsed")
-        
+        category = st.selectbox("카테고리 선택", categories, key=f"trend_category_{tab_name}", label_visibility="collapsed")
+
     if not prompt_input:
         main_keyword = category
-    
+    else:
+        main_keyword = global_main_keyword
+
     selected_period = "now 7-d"
-    
-    # Fetch main trend data (for the left charts)
-    if ('last_main_keyword' not in st.session_state) or \
-       (st.session_state.last_main_keyword != main_keyword) or \
-       (st.session_state.get('last_period') != selected_period) or \
-       not st.session_state.get('main_trend_data'):
-        with st.spinner(f"'{main_keyword}' 트렌드 분석 중..."):
+
+    state_last_main = f"last_main_keyword_{tab_name}"
+    state_last_period = f"last_period_{tab_name}"
+    state_main_data = f"main_trend_data_{tab_name}"
+    state_last_cat = f"last_trend_category_{tab_name}"
+    state_last_cat_period = f"last_cat_period_{tab_name}"
+    state_cat_data = f"category_trend_data_{tab_name}"
+
+    if (state_last_main not in st.session_state) or \
+       (st.session_state[state_last_main] != main_keyword) or \
+       (st.session_state.get(state_last_period) != selected_period) or \
+       not st.session_state.get(state_main_data):
+        with st.spinner(f"'{main_keyword}' {tab_name} 트렌드 분석 중..."):
             main_trend_data = get_trend_summary(main_keyword, period=selected_period)
-            st.session_state.main_trend_data = main_trend_data
-            st.session_state.last_main_keyword = main_keyword
-            st.session_state.last_period = selected_period
+            st.session_state[state_main_data] = main_trend_data
+            st.session_state[state_last_main] = main_keyword
+            st.session_state[state_last_period] = selected_period
 
-    # Fetch category trend data (for the right list)
-    if ('last_trend_category' not in st.session_state) or \
-       (st.session_state.last_trend_category != category) or \
-       (st.session_state.get('last_cat_period') != selected_period) or \
-       not st.session_state.get('category_trend_data'):
-        with st.spinner(f"'{category}' 인기검색어 가져오는 중..."):
+    if (state_last_cat not in st.session_state) or \
+       (st.session_state[state_last_cat] != category) or \
+       (st.session_state.get(state_last_cat_period) != selected_period) or \
+       not st.session_state.get(state_cat_data):
+        with st.spinner(f"'{category}' {tab_name} 인기검색어 가져오는 중..."):
             category_trend_data = get_trend_summary(category, period=selected_period)
-            st.session_state.category_trend_data = category_trend_data
-            st.session_state.last_trend_category = category
-            st.session_state.last_cat_period = selected_period
+            st.session_state[state_cat_data] = category_trend_data
+            st.session_state[state_last_cat] = category
+            st.session_state[state_last_cat_period] = selected_period
 
-    main_data = st.session_state.get('main_trend_data')
-    cat_data = st.session_state.get('category_trend_data')
-    
+    main_data = st.session_state.get(state_main_data)
+    cat_data = st.session_state.get(state_cat_data)
+
     if main_data and isinstance(main_data, dict):
         with col1:
-            st.markdown(f"### <span style='color:#0056b3'>{main_keyword}</span> 검색어 순위 근황 (최근 1주일 기준)", unsafe_allow_html=True)
+            st.markdown(f"### <span style='color:#0056b3'>{main_keyword}</span> {tab_name} 검색어 순위 근황 (최근 1주일 기준)", unsafe_allow_html=True)
             
-            # Line Chart
             x_format = '%m-%d'
                 
             df_time = main_data['time_series']
@@ -121,7 +101,6 @@ def render_trends():
             st.write("---")
             subcol1, subcol2, subcol3 = st.columns(3)
             
-            # Device Donut Chart
             with subcol1:
                 st.caption("PC, 모바일")
                 df_device = main_data['device_ratio']
@@ -132,7 +111,6 @@ def render_trends():
                 ).properties(height=250)
                 st.altair_chart(device_chart, use_container_width=True)
                 
-            # Gender Donut Chart
             with subcol2:
                 st.caption("여성, 남성")
                 df_gender = main_data['gender_ratio']
@@ -143,7 +121,6 @@ def render_trends():
                 ).properties(height=250)
                 st.altair_chart(gender_chart, use_container_width=True)
                 
-            # Age Bar Chart
             with subcol3:
                 st.caption("연령별")
                 df_age = main_data['age_ratio']
@@ -187,5 +164,37 @@ def render_trends():
                 st.info("인기 검색어 데이터가 없습니다.")
                 
     elif main_data:
-        # Fallback if old data format
         st.write(main_data)
+
+def render_trends():
+    st.header("📈 최신 트렌드")
+    
+    categories = [
+        "화장품/뷰티", "IT/가전", "패션/의류", "식품/건강", 
+        "인테리어/가구", "여행/숙박", "금융/재테크", "게임/엔터", 
+        "교육/도서", "자동차/모빌리티", "출산/육아", "반려동물 용품", "취미/스포츠", "해당 카테고리 없음"
+    ]
+    
+    prompt_input = st.session_state.get("prompt_input", "").strip()
+    global_main_keyword = None
+    
+    if prompt_input:
+        if ('last_prompt_for_keyword' not in st.session_state) or (st.session_state.last_prompt_for_keyword != prompt_input):
+            with st.spinner("프롬프트에서 핵심 키워드 및 카테고리 분석 중..."):
+                extracted_keyword = extract_keyword(prompt_input)
+                mapped_category = classify_category(extracted_keyword, categories[:-1])
+                
+                st.session_state.extracted_keyword = extracted_keyword
+                tab_names = ["Naver", "Google", "Instagram", "Threads", "X (Twitter)"]
+                for t in tab_names:
+                    st.session_state[f"trend_category_{t}"] = mapped_category
+                st.session_state.last_prompt_for_keyword = prompt_input
+                
+        global_main_keyword = st.session_state.extracted_keyword
+
+    tab_names = ["Naver", "Google", "Instagram", "Threads", "X (Twitter)"]
+    tabs = st.tabs(tab_names)
+    
+    for i, tab_name in enumerate(tab_names):
+        with tabs[i]:
+            render_trend_tab(tab_name, categories, prompt_input, global_main_keyword)
