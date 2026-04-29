@@ -1,6 +1,7 @@
 import streamlit as st
 import altair as alt
 from modules.trend_analyzer import get_trend_summary
+from modules.keyword_extractor import extract_keyword
 
 def render_trends():
     st.header("📈 최신 트렌드")
@@ -20,7 +21,16 @@ def render_trends():
             
     # Use prompt input for main analysis, fallback to category if empty
     prompt_input = st.session_state.get("prompt_input", "").strip()
-    main_keyword = prompt_input if prompt_input else category
+    
+    if prompt_input:
+        if ('last_prompt_for_keyword' not in st.session_state) or (st.session_state.last_prompt_for_keyword != prompt_input):
+            with st.spinner("프롬프트에서 핵심 키워드를 추출하는 중..."):
+                st.session_state.extracted_keyword = extract_keyword(prompt_input)
+                st.session_state.last_prompt_for_keyword = prompt_input
+        
+        main_keyword = st.session_state.extracted_keyword
+    else:
+        main_keyword = category
     
     selected_period = "now 7-d"
     
