@@ -37,6 +37,30 @@ st.markdown("""
         color: #6B7280;
         border: 1px solid #E5E7EB;
     }
+    /* 제작하기 버튼(primary) 스타일 */
+    div.stButton > button[kind="primary"] {
+        background-color: white !important;
+        color: black !important; /* 텍스트 검은색으로 변경 */
+        border-color: #CCCCCC !important;
+        font-weight: bold !important;
+    }
+    div.stButton > button[kind="primary"]:hover {
+        background-color: #F3F4F6 !important;
+        border-color: #999999 !important;
+        color: black !important;
+    }
+    /* 플랫폼 선택(멀티셀렉트) 태그 스타일 */
+    span[data-baseweb="tag"] {
+        background-color: #FFFACD !important; /* 연한 노랑색 (LemonChiffon) */
+        padding: 6px 16px !important; /* 좌우 길이를 적절히 늘림 */
+        margin-right: 8px !important; /* 태그 간 간격 추가 */
+        border-radius: 16px !important; /* 둥글게 */
+        border: 1px solid #F0E68C !important;
+    }
+    span[data-baseweb="tag"] span {
+        color: #333333 !important; /* 글자는 잘 보이게 진한 색 */
+        font-size: 14px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -74,17 +98,22 @@ components.html(
 )
 
 # Main Content Area Routing
+# Create a placeholder for the main content
+main_content = st.empty()
+
+# Clear the placeholder explicitly to remove any ghosting from the previous view ONLY when transitioning
 if st.session_state.get("is_transitioning"):
     st.session_state.is_transitioning = False
-    st.rerun()
+    main_content.empty()
 
-if st.session_state.current_view == 'home':
-    render_home()
-elif st.session_state.current_view == 'result':
-    render_result()
-elif st.session_state.current_view == 'popular':
-    render_popular()
-elif st.session_state.current_view == 'trends':
-    render_trends()
-elif st.session_state.current_view == 'history':
-    render_history()
+with main_content.container():
+    if st.session_state.current_view == 'home':
+        render_home()
+    elif st.session_state.current_view == 'result':
+        render_result()
+    elif st.session_state.current_view == 'popular':
+        render_popular()
+    elif st.session_state.current_view == 'trends':
+        render_trends()
+    elif st.session_state.current_view == 'history':
+        render_history()
