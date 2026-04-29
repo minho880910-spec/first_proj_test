@@ -64,5 +64,5 @@ def render_sidebar():
         if st.button("📈 최신 트렌드", use_container_width=True):
             st.session_state.current_view = 'trends'
 
-        if st.button("🕒 히스토리", use_container_width=True):
+        if st.button("🕒 포스팅 생성내역", use_container_width=True):
             st.session_state.current_view = 'history'
