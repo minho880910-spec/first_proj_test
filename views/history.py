@@ -18,7 +18,7 @@ def render_history():
             with st.popover("전체 내역 삭제", use_container_width=True):
                 st.write("⚠️ **전체 삭제**")
                 st.write("모든 기록을 삭제하시겠습니까?")
-                if st.button("확정", type="primary", use_container_width=True):
+                if st.button("확인", type="primary", use_container_width=True):
                     clear_all_history()
                     st.rerun()
 
