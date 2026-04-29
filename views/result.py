@@ -5,16 +5,29 @@ from modules.database import add_history
 def render_result():
     st.markdown("""
         <style>
+        /* 제작하기 버튼 스타일 */
         div.stButton > button[kind="primary"] {
-            background-color: #87CEFA !important;
-            color: #333333 !important;
-            border-color: #87CEFA !important;
+            background-color: white !important;
+            color: black !important; /* 텍스트 검은색으로 변경 */
+            border-color: #CCCCCC !important;
             font-weight: bold !important;
         }
         div.stButton > button[kind="primary"]:hover {
-            background-color: #00BFFF !important;
-            border-color: #00BFFF !important;
-            color: white !important;
+            background-color: #F3F4F6 !important;
+            border-color: #999999 !important;
+            color: black !important;
+        }
+        /* 플랫폼 선택(멀티셀렉트) 태그 스타일 */
+        span[data-baseweb="tag"] {
+            background-color: #FFFACD !important; /* 연한 노랑색 (LemonChiffon) */
+            padding: 6px 16px !important; /* 좌우 길이를 적절히 늘림 */
+            margin-right: 8px !important; /* 태그 간 간격 추가 */
+            border-radius: 16px !important; /* 둥글게 */
+            border: 1px solid #F0E68C !important;
+        }
+        span[data-baseweb="tag"] span {
+            color: #333333 !important; /* 글자는 잘 보이게 진한 색 */
+            font-size: 14px !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -25,7 +38,12 @@ def render_result():
     sns_options = ["Instagram", "Threads", "X (Twitter)"]
     selected_sns = st.multiselect("포스팅 할 SNS 선택", sns_options, default=sns_options, key="sns_select")
     
-    if st.button("제작하기", type="primary", use_container_width=True):
+    # 버튼 길이를 3분의 1로 줄이기 위해 컬럼 사용
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        submit_btn = st.button("제작하기", type="primary", use_container_width=True)
+    
+    if submit_btn:
         title = st.session_state.get("prompt_input", "")
         if title:
             if not selected_sns:
@@ -39,10 +57,11 @@ def render_result():
                     st.session_state.results = results
                     st.session_state.selected_sns = selected_sns
                     
-                    # 새 결과를 텍스트 에어리어에 즉시 반영하기 위해 기존 캐시 키 삭제
-                    for key in ['ig_res', 'th_res', 'x_res']:
-                        if key in st.session_state:
-                            del st.session_state[key]
+                    # 새 결과를 텍스트 에어리어에 즉시 반영하기 위해 session_state 업데이트
+                    st.session_state['ig_res'] = results.get('instagram', '')
+                    st.session_state['th_res'] = results.get('threads', '')
+                    st.session_state['x_res'] = results.get('x', '')
+
                             
                     add_history(category, title, tone, results.get('instagram', ''), results.get('threads', ''), results.get('x', ''))
         else:
@@ -67,5 +86,5 @@ def render_result():
                     st.subheader("X (Twitter) 포스팅")
                     st.caption("주의: X는 280자 제한이 있습니다.")
                     x_content = st.session_state.results.get('x', '')
-                    st.text_area("내용", x_content, height=200, key="x_res")
+                    st.text_area("내용", x_content, height=280, key="x_res")
                     st.caption(f"글자 수: {len(x_content)}자")
