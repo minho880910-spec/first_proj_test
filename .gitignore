@@ -27,4 +27,4 @@ Thumbs.db
 *.log
 
 # 히스토리 관련
-history.db
+*.db
