@@ -56,6 +56,7 @@ def analyze_with_ai(data_bundle, api_key, platform="NAVER"):
     
     prompt = f"""
     당신은 전문 트렌드 분석가입니다. 제공된 {platform} 데이터를 분석하여 다음 형식을 엄격히 준수해 답변하세요.
+    (주의: 매체명인 '{platform}'은 절대 한글로 번역하지 말고 영문 그대로 표기하세요.)
 
     [출력 형식]:
     최신 트렌드 :
