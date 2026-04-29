@@ -62,7 +62,7 @@ components.html(
         script.innerHTML = `
             const sidebar = document.querySelector('[data-testid="stSidebar"]');
             if (sidebar) {
-                sidebar.style.width = '25vw';
+                sidebar.style.width = '40vw';
             }
         `;
         doc.body.appendChild(script);
