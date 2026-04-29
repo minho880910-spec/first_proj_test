@@ -3,34 +3,7 @@ from modules.llm_engine import generate_content
 from modules.database import add_history
 
 def render_result():
-    st.markdown("""
-        <style>
-        /* 제작하기 버튼 스타일 */
-        div.stButton > button[kind="primary"] {
-            background-color: white !important;
-            color: black !important; /* 텍스트 검은색으로 변경 */
-            border-color: #CCCCCC !important;
-            font-weight: bold !important;
-        }
-        div.stButton > button[kind="primary"]:hover {
-            background-color: #F3F4F6 !important;
-            border-color: #999999 !important;
-            color: black !important;
-        }
-        /* 플랫폼 선택(멀티셀렉트) 태그 스타일 */
-        span[data-baseweb="tag"] {
-            background-color: #FFFACD !important; /* 연한 노랑색 (LemonChiffon) */
-            padding: 6px 16px !important; /* 좌우 길이를 적절히 늘림 */
-            margin-right: 8px !important; /* 태그 간 간격 추가 */
-            border-radius: 16px !important; /* 둥글게 */
-            border: 1px solid #F0E68C !important;
-        }
-        span[data-baseweb="tag"] span {
-            color: #333333 !important; /* 글자는 잘 보이게 진한 색 */
-            font-size: 14px !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+
     st.header("✨ 콘텐츠 제작")
     
     tone_options = ["전문적인", "친근한", "유머러스한", "감성적인", "직접 입력"]
