@@ -7,6 +7,7 @@ import re
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+from modules.keyword_extractor import extract_keyword
 
 # --- 1. 환경 변수 설정 ---
 current_dir = Path(__file__).resolve().parent
@@ -91,7 +92,17 @@ def render_popular():
         return
 
     # 검색창 레이아웃
-    search_query = st.session_state.get("prompt_input", "").strip()
+    prompt_input = st.session_state.get("prompt_input", "").strip()
+    
+    if prompt_input:
+        if ('last_prompt_for_keyword' not in st.session_state) or (st.session_state.last_prompt_for_keyword != prompt_input):
+            with st.spinner("프롬프트에서 핵심 키워드를 추출하는 중..."):
+                st.session_state.extracted_keyword = extract_keyword(prompt_input)
+                st.session_state.last_prompt_for_keyword = prompt_input
+        search_query = st.session_state.extracted_keyword
+    else:
+        search_query = ""
+
     col_input, col_btn = st.columns([4, 1])
     with col_input:
         search_input = st.text_input("검색할 키워드", value=search_query, key="no_img_pop_input", label_visibility="collapsed")
