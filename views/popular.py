@@ -155,7 +155,7 @@ def render_sns_section(platform_name, keyword, api_key):
 
 
 def render_popular():
-    st.header("✨ AI 트렌드 & 인기 게시글 TOP")
+    st.header("🔥 인기 포스팅")
     
     openai_key = os.getenv("OPENAI_API_KEY")
     c_id, c_secret = os.getenv("NAVER_CLIENT_ID"), os.getenv("NAVER_CLIENT_SECRET")
