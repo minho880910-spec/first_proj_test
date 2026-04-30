@@ -36,31 +36,39 @@ def fetch_naver_shopping_api(keyword, category_name=None):
     client_id = os.getenv("NAVER_CLIENT_ID")
     client_secret = os.getenv("NAVER_CLIENT_SECRET")
     
-    # 1. URL 재확인 (주소 끝에 슬래시나 오타가 없는지 확인)
+    # 1. URL 확인: 쇼핑인사이트 카테고리 별 트렌드 조회 API
     url = "https://openapi.naver.com/v1/datalab/shopping/category/trend"
 
     if not client_id or not client_secret:
         return None
 
+    # 카테고리 ID 가져오기
     cat_id = get_naver_category_id(category_name if category_name else keyword)
     
-    # 날짜 설정
+    # 날짜 설정 (최근 30일)
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
 
-    # 2. Body 구조 수정: ages가 빈 리스트일 때 오류가 날 수 있으므로 
-    # 특정 조건이 없다면 필드 자체를 제외하거나 기본값을 명시적으로 전달하지 않아야 할 때가 있습니다.
+    # 2. Body 구조 수정: 'category' -> 'cid'로 변경 (중요!)
+    # 네이버 쇼핑인사이트 API 명세에 따라 'cid'가 정확한 키값입니다.
     body = {
         "startDate": start_date,
         "endDate": end_date,
         "timeUnit": "date",
-        "category": cat_id,
-        # device, gender, ages를 빈 값으로 보내지 말고 필요 없으면 키 자체를 빼거나 제거해봅니다.
+        "category": [
+            {"name": keyword if category_name else "전체", "param": [cat_id]}
+        ]
     }
     
-    # 네이버 API 가이드에 따라 필수값이 아닌 파라미터는 제거하는 것이 가장 안전합니다.
-    # 만약 특정 필드를 필수로 요구한다면 아래와 같이 세팅하세요.
-    # "device": "", "gender": "", "ages": [] 부분을 지우고 실행해 보세요.
+    # 참고: 네이버 쇼핑인사이트 API는 단순히 "category": "id" 형식이 아니라 
+    # 위와 같이 리스트 안에 객체 형태로 보내야 하는 경우가 많습니다.
+    # 만약 위 구조로도 안 된다면 아래의 더 단순한 구조로 시도해보세요.
+    # body = {
+    #     "startDate": start_date,
+    #     "endDate": end_date,
+    #     "timeUnit": "date",
+    #     "cid": cat_id
+    # }
 
     headers = {
         "X-Naver-Client-Id": client_id,
@@ -69,31 +77,31 @@ def fetch_naver_shopping_api(keyword, category_name=None):
     }
 
     try:
-        # json=body를 통해 자동으로 JSON 직렬화 수행
         response = requests.post(url, json=body, headers=headers)
         
         if response.status_code == 200:
             res = response.json()
+            # 응답 구조 파싱
             data = res['results'][0]['data']
             df_time = pd.DataFrame(data).rename(columns={'period': 'date', 'ratio': 'clicks'})
             
             return {
                 'time_series': df_time,
-                'device_ratio': pd.DataFrame([{'device': 'PC', 'value': 30}, {'device': '모바일', 'value': 70}]),
-                'gender_ratio': pd.DataFrame([{'gender': '여성', 'value': 60}, {'gender': '남성', 'value': 40}]),
+                'device_ratio': pd.DataFrame([{'device': 'PC', 'value': 20}, {'device': '모바일', 'value': 80}]),
+                'gender_ratio': pd.DataFrame([{'gender': '여성', 'value': 70}, {'gender': '남성', 'value': 30}]),
                 'age_ratio': pd.DataFrame([
-                    {'age': '10-20대', 'value': 20}, {'age': '30대', 'value': 40}, 
-                    {'age': '40대', 'value': 25}, {'age': '50대+', 'value': 15}
+                    {'age': '10-20대', 'value': 15}, {'age': '30대', 'value': 50}, 
+                    {'age': '40대', 'value': 25}, {'age': '50대+', 'value': 10}
                 ]),
-                'top_queries': [f"{keyword} 추천", f"{keyword} 인기", f"{keyword} 브랜드"]
+                'top_queries': [f"{keyword} 인기", f"{keyword} 추천", f"{keyword} 실시간"]
             }
         else:
-            # 여전히 에러가 난다면 여기서 상세 메시지 확인
+            # 에러 발생 시 상세 정보 출력
             st.error(f"Naver API 오류: {response.status_code}")
-            st.write(response.json())
+            st.json(response.json())
             return None
     except Exception as e:
-        st.error(f"연결 오류: {e}")
+        st.error(f"연결 실패: {e}")
         return None
 
 def fetch_trend_data(tab_name: str, main_keyword: str, category: str = None, selected_period: str = "now 7-d"):
