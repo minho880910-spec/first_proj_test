@@ -88,12 +88,13 @@ def render(tab_name: str, prompt_input: str, global_main_keyword: str):
         # --- [하단 오른쪽] 스레드 오피니언 리더 ---
         with influencers_container:
             influencers = main_data.get('top_influencers', [])
+            
             if influencers:
-                # 컨테이너 시작 (배경색 및 테두리)
+                # 1. 전체를 감싸는 컨테이너 시작
                 inf_html = "<div style='background-color: #1a1b26; border: 1px solid #292e42; border-radius: 12px; padding: 20px; color: #a9b1d6;'>"
                 
+                # 2. 반복문을 통해 데이터 하나씩 HTML 생성
                 for inf in influencers:
-                    # 각 인플루언서 항목을 f-string으로 생성하여 inf_html에 추가
                     inf_html += f"""
                     <div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;'>
                         <div style='display: flex; align-items: center;'>
@@ -120,10 +121,10 @@ def render(tab_name: str, prompt_input: str, global_main_keyword: str):
                     </div>
                     """
                 
-                # 컨테이너 닫기
+                # 3. 컨테이너 닫기
                 inf_html += "</div>"
                 
-                # 최종 HTML 렌더링
+                # 4. 최종적으로 한 번만 렌더링
                 st.markdown(inf_html, unsafe_allow_html=True)
             else:
-                st.info("실시간 오피니언 리더 데이터가 없습니다.")
+                st.info("오피니언 리더 데이터가 없습니다.")
