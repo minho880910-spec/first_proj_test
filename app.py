@@ -14,7 +14,7 @@ from views.history import render_history
 init_db()
 
 # Configure page
-st.set_page_config(page_title="지피지기 포스팅 자동 생성기", page_icon="✨", layout="wide")
+st.set_page_config(page_title="지피지기 포스팅 자동 생성기", page_icon="logo.png", layout="wide")
 
 
 # Main App State

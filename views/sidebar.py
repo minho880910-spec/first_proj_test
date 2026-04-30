@@ -2,6 +2,16 @@ import streamlit as st
 from modules.database import add_history
 from modules.llm_engine import generate_content
 from modules.trend_analyzer import get_trend_summary
+import base64
+import os
+
+@st.cache_data
+def get_logo_base64():
+    logo_path = "logo.png"
+    if os.path.exists(logo_path):
+        with open(logo_path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+    return ""
 
 def render_sidebar():
     def change_view(view):
@@ -11,41 +21,56 @@ def render_sidebar():
         if view == 'result' and st.session_state.get("prompt_input"):
             st.session_state.auto_generate = True
 
+    logo_b64 = get_logo_base64()
+
     with st.sidebar:
-        st.markdown("""
+        st.markdown(f"""
             <style>
-            div[data-testid="stElementContainer"]:has(.logo-btn-marker) {
+            div[data-testid="stElementContainer"]:has(.logo-btn-marker) {{
                 display: none;
-            }
-            div[data-testid="stElementContainer"]:has(.logo-btn-marker) + div[data-testid="stElementContainer"] button {
+            }}
+            div[data-testid="stElementContainer"]:has(.logo-btn-marker) + div[data-testid="stElementContainer"] button {{
                 background: transparent !important;
                 border: transparent !important;
                 box-shadow: none !important;
                 padding: 0 !important;
                 margin: 0 !important;
                 justify-content: flex-start !important;
-            }
-            div[data-testid="stElementContainer"]:has(.logo-btn-marker) + div[data-testid="stElementContainer"] button:hover {
+            }}
+            div[data-testid="stElementContainer"]:has(.logo-btn-marker) + div[data-testid="stElementContainer"] button:hover {{
                 background: transparent !important;
                 border: transparent !important;
                 box-shadow: none !important;
-            }
-            div[data-testid="stElementContainer"]:has(.logo-btn-marker) + div[data-testid="stElementContainer"] button:focus:not(:active) {
+            }}
+            div[data-testid="stElementContainer"]:has(.logo-btn-marker) + div[data-testid="stElementContainer"] button:focus:not(:active) {{
                 border-color: transparent !important;
                 box-shadow: none !important;
                 color: inherit !important;
-            }
-            div[data-testid="stElementContainer"]:has(.logo-btn-marker) + div[data-testid="stElementContainer"] button p {
+            }}
+            div[data-testid="stElementContainer"]:has(.logo-btn-marker) + div[data-testid="stElementContainer"] button p {{
                 font-size: 1.85rem !important;
                 font-weight: 600 !important;
                 margin: 0 !important;
                 padding: 1.25rem 0px 1rem 0px !important;
                 color: inherit;
-            }
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }}
+            div[data-testid="stElementContainer"]:has(.logo-btn-marker) + div[data-testid="stElementContainer"] button p::before {{
+                content: "";
+                display: inline-block;
+                width: 2.2rem;
+                height: 2.2rem;
+                background-image: url("data:image/png;base64,{logo_b64}");
+                background-size: contain;
+                background-repeat: no-repeat;
+                background-position: center;
+            }}
             </style>
         """, unsafe_allow_html=True)
         st.markdown('<div class="logo-btn-marker"></div>', unsafe_allow_html=True)
-        st.button("✨ 지피지기", key="logo_btn", on_click=change_view, args=('home',))
+        st.button("지피지기", key="logo_btn", on_click=change_view, args=('home',))
         st.write("---")
 
         categories = [
