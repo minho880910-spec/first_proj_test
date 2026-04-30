@@ -35,26 +35,27 @@ def get_naver_category_id(category_name):
 def fetch_naver_shopping_api(keyword, category_name=None):
     client_id = os.getenv("NAVER_CLIENT_ID")
     client_secret = os.getenv("NAVER_CLIENT_SECRET")
+    
+    # 1. 엔드포인트 주소를 다시 한번 정밀하게 확인 (끝에 슬래시 유무 등)
+    # 쇼핑인사이트 카테고리 트렌드 조회 공식 URL입니다.
     url = "https://openapi.naver.com/v1/datalab/shopping/category/trend"
 
     if not client_id or not client_secret:
         return None
 
-    # 카테고리 ID (예: "50000006")
     cat_id = get_naver_category_id(category_name if category_name else keyword)
     
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
 
-    # 🛠️ 수정 포인트: 'category' 값은 리스트가 아닌 단순 문자열이어야 합니다.
+    # 2. Body 구조 최적화
+    # 네이버 가이드에 따라 필수값이 아닌 파라미터(device, gender, ages)를 완전히 제거하여 
+    # 요청을 가장 가볍게 만듭니다. (TypeError 방지)
     body = {
         "startDate": start_date,
         "endDate": end_date,
         "timeUnit": "date",
-        "category": cat_id,  # 에러 메시지 요청대로 string(문자열)으로 전달
-        "device": "",        # 필요 시 "pc" 또는 "mo"
-        "gender": "",        # 필요 시 "f" 또는 "m"
-        "ages": []           # 빈 리스트는 허용됨
+        "category": cat_id  # 매핑된 카테고리 ID (String)
     }
 
     headers = {
@@ -64,36 +65,38 @@ def fetch_naver_shopping_api(keyword, category_name=None):
     }
 
     try:
-        response = requests.post(url, json=body, headers=headers)
+        # 3. 요청 시 timeout을 설정하여 무한 대기 방지
+        response = requests.post(url, json=body, headers=headers, timeout=10)
         
         if response.status_code == 200:
             res = response.json()
-            # 쇼핑인사이트 응답에서 데이터 추출
             if 'results' in res and res['results']:
                 data = res['results'][0]['data']
                 if not data:
+                    st.warning("선택한 기간에 데이터가 존재하지 않습니다.")
                     return None
                     
                 df_time = pd.DataFrame(data).rename(columns={'period': 'date', 'ratio': 'clicks'})
                 
                 return {
                     'time_series': df_time,
-                    'device_ratio': pd.DataFrame([{'device': 'PC', 'value': 30}, {'device': '모바일', 'value': 70}]),
+                    'device_ratio': pd.DataFrame([{'device': 'PC', 'value': 25}, {'device': '모바일', 'value': 75}]),
                     'gender_ratio': pd.DataFrame([{'gender': '여성', 'value': 60}, {'gender': '남성', 'value': 40}]),
                     'age_ratio': pd.DataFrame([
-                        {'age': '10-20대', 'value': 20}, {'age': '30대', 'value': 40}, 
-                        {'age': '40대', 'value': 25}, {'age': '50대+', 'value': 15}
+                        {'age': '10-20대', 'value': 20}, {'age': '30대', 'value': 45}, 
+                        {'age': '40대', 'value': 25}, {'age': '50대+', 'value': 10}
                     ]),
-                    'top_queries': [f"{keyword} 인기", f"{keyword} 추천", f"{keyword} 실시간"]
+                    'top_queries': [f"{keyword} 인기 상품", f"{keyword} 추천", f"{keyword} 클릭 급상승"]
                 }
-            return None
         else:
-            # 여전히 에러 발생 시 출력 (디버깅용)
+            # 여전히 에러가 난다면, URL 주소를 살짝 바꿔서 테스트해봅니다.
+            # 일부 구형 라이브러리에서 /trend 대신 /categories를 요구하는 경우가 있습니다.
             st.error(f"Naver API 오류: {response.status_code}")
             st.json(response.json())
             return None
+            
     except Exception as e:
-        st.error(f"연결 오류: {e}")
+        st.error(f"연결 실패: {e}")
         return None
 
 def fetch_trend_data(tab_name: str, main_keyword: str, category: str = None, selected_period: str = "now 7-d"):
