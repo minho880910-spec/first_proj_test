@@ -56,24 +56,36 @@ def render(tab_name: str, prompt_input: str, global_main_keyword: str):
             else:
                 st.info("연관 검색어가 없습니다.")
 
-        # --- [하단 왼쪽] 지도 로딩 (경로 수정됨) ---
+        # --- [하단 왼쪽] 지도 로딩 (루트 경로 기준 수정) ---
         with map_container:
             try:
-                # 현재 파일: /mount/src/first_proj_test/views/google_tab.py
-                current_dir = os.path.dirname(os.path.abspath(__file__)) # views 폴더
-                project_root = os.path.dirname(current_dir) # first_proj_test (최상단)
-                map_path = os.path.join(project_root, "assets", "korea_map.png")
+                # 1. 현재 프로세스가 실행 중인 최상단 루트 경로를 가져옵니다.
+                # 보통 /mount/src/first_proj_test 가 됩니다.
+                root_path = os.getcwd() 
+                
+                # 2. 루트 경로에서 바로 assets/korea_map.png를 연결합니다.
+                map_path = os.path.join(root_path, "assets", "korea_map.png")
 
                 if os.path.exists(map_path):
                     with open(map_path, "rb") as f:
                         encoded = base64.b64encode(f.read()).decode()
-                        st.markdown(f"<img src='data:image/png;base64,{encoded}' style='width: 100%; border-radius: 10px;'>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"""
+                            <div style="text-align: center;">
+                                <img src="data:image/png;base64,{encoded}" 
+                                     style="width: 100%; border-radius: 10px; border: 1px solid #292e42;">
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
                 else:
-                    st.error(f"지도를 찾을 수 없습니다.")
-                    # 디버깅용 (필요 없으면 삭제하세요)
-                    st.caption(f"시도한 경로: {map_path}")
+                    st.error("지도를 찾을 수 없습니다.")
+                    # 경로가 여전히 이상하다면 여기서 실제 어디를 찌르고 있는지 확인 가능합니다.
+                    st.caption(f"시스템이 인식한 현재 루트: {root_path}")
+                    st.caption(f"확인 중인 최종 경로: {map_path}")
+                    
             except Exception as e:
-                st.error("지도 로드 실패")
+                st.error(f"지도 로드 중 오류 발생: {e}")
 
         # --- [하단 중앙] 전국 랭킹 ---
         with rankings_container:
