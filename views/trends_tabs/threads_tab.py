@@ -85,26 +85,45 @@ def render(tab_name: str, prompt_input: str, global_main_keyword: str):
             else:
                 st.info("뜨거운 감자 데이터가 없습니다.")
         
-        # --- [하단 오른쪽] 오피니언 리더 ---
+        # --- [하단 오른쪽] 스레드 오피니언 리더 ---
         with influencers_container:
             influencers = main_data.get('top_influencers', [])
             if influencers:
-                inf_html = "<div style='background-color: #1a1b26; border: 1px solid #292e42; border-radius: 12px; padding: 15px; color: #a9b1d6;'>"
+                # 컨테이너 시작 (배경색 및 테두리)
+                inf_html = "<div style='background-color: #1a1b26; border: 1px solid #292e42; border-radius: 12px; padding: 20px; color: #a9b1d6;'>"
+                
                 for inf in influencers:
+                    # 각 인플루언서 항목을 f-string으로 생성하여 inf_html에 추가
                     inf_html += f"""
                     <div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;'>
                         <div style='display: flex; align-items: center;'>
-                            <div style='color: #4fc3f7; font-size: 18px; font-weight: bold; width: 25px;'>{inf['rank']}</div>
-                            <div style='width: 40px; height: 40px; background-color: #e0e0e0; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 10px;'>🧑‍🍳</div>
-                            <div>
-                                <div style='font-size: 14px; font-weight: bold;'>{inf['handle']}</div>
-                                <div style='font-size: 12px; color: #888888;'>{inf['name']}</div>
+                            <!-- 순위 -->
+                            <div style='color: #4fc3f7; font-size: 18px; font-weight: bold; width: 30px;'>{inf.get('rank', '-')}</div>
+                            
+                            <!-- 프로필 아이콘 (원형) -->
+                            <div style='width: 40px; height: 40px; background-color: #2a2e3f; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; margin-right: 12px; border: 1px solid #3b4261;'>
+                                👤
+                            </div>
+                            
+                            <!-- 핸들 및 이름 -->
+                            <div style='line-height: 1.3;'>
+                                <div style='font-size: 14px; font-weight: bold; color: #ffffff;'>{inf.get('handle', '@user')}</div>
+                                <div style='font-size: 12px; color: #888888;'>{inf.get('name', '사용자')}</div>
                             </div>
                         </div>
-                        <div style='text-align: right;'>
-                            <div style='font-size: 13px;'>{inf['mentions']} 멘션</div>
+                        
+                        <!-- 멘션 및 팔로워 정보 (오른쪽 정렬) -->
+                        <div style='text-align: right; line-height: 1.3;'>
+                            <div style='font-size: 13px; color: #4fc3f7; font-weight: 500;'>{inf.get('mentions', '0')} 멘션</div>
+                            <div style='font-size: 11px; color: #565f89;'>{inf.get('followers', '0')} 팔로워</div>
                         </div>
                     </div>
                     """
+                
+                # 컨테이너 닫기
                 inf_html += "</div>"
+                
+                # 최종 HTML 렌더링
                 st.markdown(inf_html, unsafe_allow_html=True)
+            else:
+                st.info("실시간 오피니언 리더 데이터가 없습니다.")
