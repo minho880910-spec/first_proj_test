@@ -6,6 +6,7 @@ env/
 # 보안 (환경변수)
 .env
 *.env
+secrets.toml
 
 # Python 캐시 및 컴파일 파일
 **/__pycache__/
