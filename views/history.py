@@ -4,7 +4,7 @@ from modules.database import get_all_history, delete_history, clear_all_history
 def render_history():
     """톤앤매너 정보를 포함하여 생성 내역을 렌더링합니다."""
     
-    st.header("포스팅 생성 내역")
+    st.header("🕒 생성 내역 관리")
     
     # 1. 데이터베이스에서 전체 내역 로드
     df = get_all_history()
