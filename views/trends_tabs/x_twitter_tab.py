@@ -3,7 +3,7 @@ import altair as alt
 from modules.trend_state_manager import fetch_trend_data
 
 def render(tab_name: str, prompt_input: str, global_main_keyword: str):
-    main_keyword = global_main_keyword if prompt_input else "화장품/뷰티"
+    main_keyword = global_main_keyword
     
     col1, col2 = st.columns([2.5, 1])
     bot_col1, bot_col2 = st.columns([2.5, 1])
