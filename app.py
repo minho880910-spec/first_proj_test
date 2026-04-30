@@ -14,55 +14,6 @@ init_db()
 # Configure page
 st.set_page_config(page_title="지피지기 포스팅 자동 생성기", page_icon="✨", layout="wide")
 
-# Custom CSS for styling
-st.markdown("""
-<style>
-    .stButton>button {
-        width: 100%;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        font-weight: bold;
-    }
-    .btn-primary>button {
-        background-color: #111827;
-        color: white;
-    }
-    .btn-secondary>button {
-        background-color: #F3F4F6;
-        color: #4F46E5;
-        border: 1px solid #E5E7EB;
-    }
-    .btn-outline>button {
-        background-color: white;
-        color: #6B7280;
-        border: 1px solid #E5E7EB;
-    }
-    /* 제작하기 버튼(primary) 스타일 */
-    div.stButton > button[kind="primary"] {
-        background-color: white !important;
-        color: black !important; /* 텍스트 검은색으로 변경 */
-        border-color: #CCCCCC !important;
-        font-weight: bold !important;
-    }
-    div.stButton > button[kind="primary"]:hover {
-        background-color: #F3F4F6 !important;
-        border-color: #999999 !important;
-        color: black !important;
-    }
-    /* 플랫폼 선택(멀티셀렉트) 태그 스타일 */
-    span[data-baseweb="tag"] {
-        background-color: #FFFACD !important; /* 연한 노랑색 (LemonChiffon) */
-        padding: 6px 16px !important; /* 좌우 길이를 적절히 늘림 */
-        margin-right: 8px !important; /* 태그 간 간격 추가 */
-        border-radius: 16px !important; /* 둥글게 */
-        border: 1px solid #F0E68C !important;
-    }
-    span[data-baseweb="tag"] span {
-        color: #333333 !important; /* 글자는 잘 보이게 진한 색 */
-        font-size: 14px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 # Main App State
 if 'current_view' not in st.session_state:
