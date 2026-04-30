@@ -8,7 +8,7 @@ load_dotenv()
 
 # OpenAI 클라이언트 인스턴스 생성 (API 키는 .env 파일에서 자동으로 읽어옵니다)
 # api_key = os.getenv("OPENAI_API_KEY", "dummy_key_to_prevent_startup_crash")
-api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY", "dummy_key_to_prevent_startup_crash")
 # OpenAI 클라이언트 인스턴스 생성
 client = OpenAI(api_key=api_key)
 
