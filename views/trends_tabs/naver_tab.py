@@ -54,7 +54,49 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
             else:
                 st.info("시계열 데이터를 불러올 수 없습니다.")
 
-        # 5. 오른쪽 사이드바 콘텐츠 (연관 검색어 및 인기 검색어)
+            # (2) 비중 분석 섹션 (구분선 제거됨)
+            st.markdown("#### 📊 인구통계학적 비중 분석", unsafe_allow_html=True)
+            # st.write("---") # 요청하신 대로 구분선은 제거했습니다.
+            
+            subcol1, subcol2, subcol3 = st.columns(3)
+            
+            # 기기별 비중
+            with subcol1:
+                st.caption("💻 기기별 (PC/모바일)")
+                df_device = main_data.get('device_ratio')
+                if df_device is not None:
+                    device_chart = alt.Chart(df_device).mark_arc(innerRadius=45).encode(
+                        theta=alt.Theta(field="value", type="quantitative"),
+                        color=alt.Color(field="device", type="nominal", scale=alt.Scale(range=['#00c853', '#ff9800']), legend=alt.Legend(orient="bottom")),
+                        tooltip=['device', 'value']
+                    ).properties(height=220)
+                    st.altair_chart(device_chart, use_container_width=True)
+            
+            # 성별 비중
+            with subcol2:
+                st.caption("👫 성별 비중")
+                df_gender = main_data.get('gender_ratio')
+                if df_gender is not None:
+                    gender_chart = alt.Chart(df_gender).mark_arc(innerRadius=45).encode(
+                        theta=alt.Theta(field="value", type="quantitative"),
+                        color=alt.Color(field="gender", type="nominal", scale=alt.Scale(range=['#448aff', '#ff5252']), legend=alt.Legend(orient="bottom")),
+                        tooltip=['gender', 'value']
+                    ).properties(height=220)
+                    st.altair_chart(gender_chart, use_container_width=True)
+            
+            # 연령별 비중
+            with subcol3:
+                st.caption("🎂 연령별 비중")
+                df_age = main_data.get('age_ratio')
+                if df_age is not None:
+                    age_chart = alt.Chart(df_age).mark_bar(color='#448aff', cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
+                        x=alt.X('age:N', title='', axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('value:Q', title='', axis=None),
+                        tooltip=['age', 'value']
+                    ).properties(height=220)
+                    st.altair_chart(age_chart, use_container_width=True)
+
+        # 5. 오른쪽 사이드바 콘텐츠
         with keyword_related_container:
             st.markdown(f"#### 🔍 {main_keyword} 연관 검색어", unsafe_allow_html=True)
             main_queries = main_data.get('top_queries', [])
@@ -66,8 +108,6 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                     html_content += f"<div style='margin-bottom: 10px; font-size: 14px;'><strong style='color: #2e7d32; width: 25px; display: inline-block;'>{i+1}</strong> {q}</div>"
                 html_content += "</div>"
                 st.markdown(html_content, unsafe_allow_html=True)
-            else:
-                st.info("연관 검색어 정보가 없습니다.")
 
         with col2:
             st.write("") 
@@ -79,8 +119,3 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                     html_content2 += f"<div style='margin-bottom: 10px; font-size: 14px;'><strong style='color: #0056b3; width: 25px; display: inline-block;'>{i+1}</strong> {q}</div>"
                 html_content2 += "</div>"
                 st.markdown(html_content2, unsafe_allow_html=True)
-            else:
-                st.info(f"{category} 인기 검색어가 없습니다.")
-
-    elif main_data is None:
-        st.warning("⚠️ 데이터를 가져오는 중 오류가 발생했습니다. API 키를 확인해주세요.")
