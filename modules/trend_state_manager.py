@@ -15,23 +15,11 @@ def get_naver_headers():
     }
 
 def get_naver_category_id(category_name):
-    """
-    네이버 쇼핑인사이트 표준 카테고리 ID 매핑
-    중복된 ID를 수정하고 실제 네이버 대분류 구조를 반영했습니다.
-    """
     mapping = {
-        "패션의류": "50000000",
-        "패션잡화": "50000001",
-        "화장품/미용": "50000002",
-        "디지털/가전": "50000003",
-        "가구/인테리어": "50000004",
-        "출산/육아": "50000005",
-        "식품": "50000006",
-        "스포츠/레저": "50000007",
-        "생활/건강": "50000008",
-        "여가/생활편의": "50000009",
-        "면세점": "50000010",
-        "도서": "50000011"
+        "패션의류": "50000000", "패션잡화": "50000001", "화장품/미용": "50000002",
+        "디지털/가전": "50000003", "가구/인테리어": "50000004", "출산/육아": "50000005",
+        "식품": "50000006", "스포츠/레저": "50000007", "생활/건강": "50000008",
+        "여가/생활편의": "50000009", "면세점": "50000010", "도서": "50000011"
     }
     return mapping.get(category_name)
 
@@ -55,24 +43,34 @@ def fetch_shopping_insight_data(endpoint, body):
     except: return None
 
 def fetch_naver_all_data(keyword, category_id):
+    # 1. 공통 정보 (연관어 및 검색 추이는 카테고리 매핑과 무관하게 항상 가져옴)
     related = get_naver_related_keywords(keyword)
     
-    # [수정] 매핑 실패 시 error 키를 담아 반환
-    if not category_id:
-        return {'error': 'mapping_failed', 'top_queries': related, 'category_ranking': [], 'time_series': pd.DataFrame()}
-
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-    common_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date", "category": category_id}
-
-    # 검색 추이 호출
+    
+    # 통합 검색어 추이
     search_url = "https://openapi.naver.com/v1/datalab/search"
     search_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date",
                    "keywordGroups": [{"groupName": keyword, "keywords": [keyword]}]}
-    res_search = requests.post(search_url, json=search_body, headers=get_naver_headers()).json()
-    df_time = pd.DataFrame(res_search['results'][0]['data']).rename(columns={'period': 'date', 'ratio': 'clicks'})
+    try:
+        res_search = requests.post(search_url, json=search_body, headers=get_naver_headers()).json()
+        df_time = pd.DataFrame(res_search['results'][0]['data']).rename(columns={'period': 'date', 'ratio': 'clicks'})
+    except:
+        df_time = pd.DataFrame()
 
-    # 인구통계 가공
+    # 2. 카테고리 매핑이 필요한 데이터 처리
+    if not category_id:
+        return {
+            'error': 'mapping_failed',
+            'time_series': df_time,
+            'top_queries': related,
+            'device_ratio': None, 'gender_ratio': None, 'age_ratio': None, 'category_ranking': []
+        }
+
+    common_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date", "category": category_id}
+
+    # 인구통계 및 랭킹 데이터
     res_device = fetch_shopping_insight_data("device", common_body)
     df_device = pd.DataFrame(res_device['results'][0]['data']).rename(columns={'group': 'device', 'ratio': 'value'}) if res_device else None
     if df_device is not None: df_device['device'] = df_device['device'].replace({'mo': '모바일', 'pc': 'PC'})
@@ -84,11 +82,8 @@ def fetch_naver_all_data(keyword, category_id):
     res_age = fetch_shopping_insight_data("age", common_body)
     df_age = pd.DataFrame(res_age['results'][0]['data']).rename(columns={'group': 'age', 'ratio': 'value'}) if res_age else None
 
-    # 카테고리 랭킹 파싱
     res_rank = fetch_shopping_insight_data("keywords", common_body)
-    top_rank = []
-    if res_rank and 'results' in res_rank and res_rank['results']:
-        top_rank = [item['name'] for item in res_rank['results'][0]['data'][:10]]
+    top_rank = [item['name'] for item in res_rank['results'][0]['data'][:10]] if res_rank and 'results' in res_rank else []
 
     return {
         'time_series': df_time, 'device_ratio': df_device, 'gender_ratio': df_gender,
@@ -97,10 +92,9 @@ def fetch_naver_all_data(keyword, category_id):
 
 def fetch_trend_data(tab_name, main_keyword, category_name=None):
     state_key = f"main_trend_data_{tab_name}"
-    if tab_name == "Naver":
-        cid = get_naver_category_id(category_name)
-        data = fetch_naver_all_data(main_keyword, cid)
-        if data:
-            st.session_state[state_key] = data
-            return data, data
+    cid = get_naver_category_id(category_name)
+    data = fetch_naver_all_data(main_keyword, cid)
+    if data:
+        st.session_state[state_key] = data
+        return data, data
     return None, None
