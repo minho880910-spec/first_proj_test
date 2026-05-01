@@ -7,12 +7,19 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
     col1, col2 = st.columns([2.5, 1])
     
     with col2:
-        # 상단 연관어 고정
         keyword_related_container = st.container()
         st.divider()
         st.markdown("#### 📂 카테고리 선택")
         auto_cat = st.session_state.get(f"trend_category_{tab_name}")
-        default_idx = categories.index(auto_cat) if auto_cat in categories else 0
+        
+        # [중요] 분류 결과가 categories 리스트 내에 있는지 검증
+        if auto_cat in categories:
+            default_idx = categories.index(auto_cat)
+        else:
+            default_idx = 0 # 리스트에 없으면 첫 번째 항목 선택
+            if auto_cat and auto_cat != "해당 카테고리 없음":
+                st.caption(f"⚠️ '{auto_cat}' 분류 결과가 매핑 테이블에 없습니다.")
+
         category = st.selectbox("카테고리 선택", categories, index=default_idx, key=f"sb_{tab_name}", label_visibility="collapsed")
 
     main_keyword = global_main_keyword if prompt_input else category
