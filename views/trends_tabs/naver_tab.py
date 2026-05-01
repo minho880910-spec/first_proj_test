@@ -96,23 +96,23 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
         # 5. 오른쪽 사이드바 콘텐츠
         with keyword_related_container:
             st.markdown(f"#### 🔍 {main_keyword} 연관 검색어", unsafe_allow_html=True)
+            
+            # trend_state_manager.py에서 가져온 실제 데이터 확인
             main_queries = main_data.get('top_queries', [])
             
-            if main_queries:
+            # [디버깅용] 데이터가 비어있다면 화면에 작은 메시지를 띄워줍니다.
+            if not main_queries:
+                st.info(f"'{main_keyword}'에 대한 실시간 연관어를 가져오는 중이거나 데이터가 없습니다.")
+            else:
+                # 데이터가 있을 경우 기존의 예쁜 스타일로 렌더링
                 html_bg = "background-color: #f1f8e9; border: 1px solid #c8e6c9;"
                 html_content = f"<div style='{html_bg} padding: 15px; border-radius: 10px; height: 250px; overflow-y: auto; color: #333;'>"
+                
                 for i, q in enumerate(main_queries):
                     html_content += f"<div style='margin-bottom: 10px; font-size: 14px;'><strong style='color: #2e7d32; width: 25px; display: inline-block;'>{i+1}</strong> {q}</div>"
+                
                 html_content += "</div>"
                 st.markdown(html_content, unsafe_allow_html=True)
-
-        with col2:
-            st.write("") 
-            queries = cat_data.get('top_queries', []) if cat_data else []
-            if queries:
-                html_bg2 = "background-color: #f9f9fc; border: 1px solid #e0e0e0;"
-                html_content2 = f"<div style='{html_bg2} padding: 15px; border-radius: 10px; height: 250px; overflow-y: auto; color: #333;'>"
-                for i, q in enumerate(queries):
-                    html_content2 += f"<div style='margin-bottom: 10px; font-size: 14px;'><strong style='color: #0056b3; width: 25px; display: inline-block;'>{i+1}</strong> {q}</div>"
-                html_content2 += "</div>"
-                st.markdown(html_content2, unsafe_allow_html=True)
+                
+                # [디버깅용] 하단에 작게 개수 표시 (확인 후 나중에 삭제하세요)
+                st.caption(f"성공적으로 {len(main_queries)}개의 연관어를 불러왔습니다.")
