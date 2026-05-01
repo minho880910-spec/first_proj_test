@@ -15,6 +15,7 @@ def get_naver_headers():
     }
 
 def get_naver_category_id(category_name):
+    """표준 카테고리 ID 매핑 (의자, 책상 대응 포함)"""
     mapping = {
         "패션의류": "50000000", "패션잡화": "50000001", "화장품/미용": "50000002",
         "디지털/가전": "50000003", "가구/인테리어": "50000004", "출산/육아": "50000005",
@@ -43,12 +44,11 @@ def fetch_shopping_insight_data(endpoint, body):
     except: return None
 
 def fetch_naver_all_data(keyword, category_id):
-    # 1. 공통 정보 (항상 가져옴)
     related = get_naver_related_keywords(keyword)
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     
-    # 통합 검색어 추이
+    # 검색 추이 데이터
     search_url = "https://openapi.naver.com/v1/datalab/search"
     search_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date",
                    "keywordGroups": [{"groupName": keyword, "keywords": [keyword]}]}
@@ -58,18 +58,13 @@ def fetch_naver_all_data(keyword, category_id):
     except:
         df_time = pd.DataFrame()
 
-    # 2. 카테고리 매핑 여부에 따른 결과 구성
-    result = {
-        'time_series': df_time,
-        'top_queries': related,
-        'device_ratio': None, 'gender_ratio': None, 'age_ratio': None, 'category_ranking': []
-    }
+    result = {'time_series': df_time, 'top_queries': related, 'device_ratio': None, 'gender_ratio': None, 'age_ratio': None, 'category_ranking': []}
 
     if not category_id:
         result['error'] = 'mapping_failed'
         return result
 
-    # 3. 쇼핑 인사이트 데이터 호출
+    # 카테고리 기반 쇼핑 데이터
     common_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date", "category": category_id}
     
     res_device = fetch_shopping_insight_data("device", common_body)
