@@ -54,10 +54,8 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
             else:
                 st.info("시계열 데이터를 불러올 수 없습니다.")
 
-            # (2) 비중 분석 섹션 (구분선 제거됨)
-            st.markdown("#### 📊 인구통계학적 비중 분석", unsafe_allow_html=True)
-            # st.write("---") # 요청하신 대로 구분선은 제거했습니다.
-            
+            # (2) 비중 분석 섹션 (제목과 구분선 제거, 차트 레이아웃은 유지)
+            st.write("") # 시계열 차트와의 약간의 간격 확보
             subcol1, subcol2, subcol3 = st.columns(3)
             
             # 기기별 비중
