@@ -1,11 +1,14 @@
 import os
+import json
 import requests
 import pandas as pd
 import streamlit as st
+from openai import OpenAI
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def get_naver_headers():
     return {
@@ -23,77 +26,93 @@ def get_naver_category_id(category_name):
     }
     return mapping.get(category_name)
 
-def get_naver_related_keywords(keyword):
-    import urllib.parse
-    encoded_keyword = urllib.parse.quote(keyword)
-    url = f"https://ac.search.naver.com/nx/ac?q={encoded_keyword}&con=0&frm=nv&ans=2&r_format=json&r_enc=UTF-8&r_unicode=0&t_koreng=1&run=2&rev=4&q_enc=UTF-8&st=100"
+def generate_ai_estimates(keyword, category):
+    """데이터 부재 시 AI를 통해 논리적 예측 데이터 생성"""
+    prompt = f"""
+    키워드 '{keyword}'와 카테고리 '{category}'의 최근 대한민국 검색 트렌드를 분석해서 예상 데이터를 JSON으로 줘.
+    형식은 반드시 다음을 지켜야 해:
+    {{
+        "device": {{"mo": 70, "pc": 30}},
+        "gender": {{"f": 55, "m": 45}},
+        "age": {{"10": 5, "20": 25, "30": 35, "40": 20, "50": 10, "60": 5}},
+        "ranking": ["연관1", "연관2", "연관3", "연관4", "연관5", "연관6", "연관7", "연관8", "연관9", "연관10"]
+    }}
+    """
     try:
-        response = requests.get(url, timeout=5)
-        if response.status_code == 200:
-            items = response.json().get('items', [])
-            if items: return [item[0] for item in items[0]][:10]
-    except: pass
-    return []
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        return json.loads(response.choices[0].message.content)
+    except:
+        return None
 
-def fetch_naver_all_data(keyword, category_id):
-    related = get_naver_related_keywords(keyword)
-    
-    # 1. 시계열 데이터는 어제 날짜 기준으로 시도
-    end_date = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=31)).strftime('%Y-%m-%d')
+def fetch_naver_all_data(keyword, category_id, category_name):
+    # 1. 초기화 및 검색 추이(시계열) 로드
+    end_date = (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=32)).strftime('%Y-%m-%d')
     
     search_url = "https://openapi.naver.com/v1/datalab/search"
     search_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date",
                    "keywordGroups": [{"groupName": keyword, "keywords": [keyword]}]}
+    
+    result = {'time_series': pd.DataFrame(), 'top_queries': [], 'device_ratio': None, 
+              'gender_ratio': None, 'age_ratio': None, 'category_ranking': [], 'is_ai_generated': False}
+
     try:
         res_search = requests.post(search_url, json=search_body, headers=get_naver_headers()).json()
-        df_time = pd.DataFrame(res_search['results'][0]['data']).rename(columns={'period': 'date', 'ratio': 'clicks'})
-    except:
-        df_time = pd.DataFrame()
+        result['time_series'] = pd.DataFrame(res_search['results'][0]['data']).rename(columns={'period': 'date', 'ratio': 'clicks'})
+    except: pass
 
-    result = {
-        'time_series': df_time, 'top_queries': related,
-        'device_ratio': None, 'gender_ratio': None, 'age_ratio': None, 'category_ranking': []
-    }
+    # 2. 실시간 쇼핑 데이터 탐색 (3~10일 전 루프)
+    found_real_data = False
+    if category_id:
+        for delay in range(3, 11):
+            t_date = (datetime.now() - timedelta(days=delay)).strftime('%Y-%m-%d')
+            common_body = {"startDate": t_date, "endDate": t_date, "timeUnit": "date", "category": category_id}
+            
+            try:
+                # 랭킹 데이터 시도
+                r_res = requests.post("https://openapi.naver.com/v1/datalab/shopping/category/keywords", 
+                                      json=common_body, headers=get_naver_headers()).json()
+                items = r_res.get('results', [{}])[0].get('data', [])
+                if items:
+                    result['category_ranking'] = [i.get('name') for i in items][:10]
+                    # 나머지 지표 로드
+                    for ep in ["device", "gender", "age"]:
+                        s_res = requests.post(f"https://openapi.naver.com/v1/datalab/shopping/category/{ep}", 
+                                              json=common_body, headers=get_naver_headers()).json()
+                        s_data = s_res.get('results', [{}])[0].get('data', [])
+                        if s_data:
+                            df = pd.DataFrame(s_data).rename(columns={'group': ep, 'ratio': 'value'})
+                            if ep == "device": df['device'] = df['device'].replace({'mo': '모바일', 'pc': 'PC'})
+                            if ep == "gender": df['gender'] = df['gender'].replace({'f': '여성', 'm': '남성'})
+                            result[f'{ep}_ratio'] = df
+                    found_real_data = True
+                    break
+            except: continue
 
-    if not category_id:
-        result['error'] = 'mapping_failed'
-        return result
-
-    # 2. 쇼핑 인사이트 (랭킹 및 통계) - 데이터가 나올 때까지 날짜를 뒤로 밀며 시도
-    # 어제(1일 전)부터 최대 7일 전까지 탐색
-    for delay in range(1, 8):
-        target_date = (datetime.now() - timedelta(days=delay)).strftime('%Y-%m-%d')
-        common_body = {"startDate": target_date, "endDate": target_date, "timeUnit": "date", "category": category_id}
-        
-        url = "https://openapi.naver.com/v1/datalab/shopping/category/keywords"
-        try:
-            resp = requests.post(url, json=common_body, headers=get_naver_headers()).json()
-            data = resp.get('results', [{}])[0].get('data', [])
-            if data:
-                result['category_ranking'] = [item.get('name') for item in data if 'name' in item][:10]
-                
-                # 랭킹을 찾았다면 해당 날짜 기준으로 통계 데이터도 가져옴
-                for ep in ["device", "gender", "age"]:
-                    s_url = f"https://openapi.naver.com/v1/datalab/shopping/category/{ep}"
-                    s_res = requests.post(s_url, json=common_body, headers=get_naver_headers()).json()
-                    s_data = s_res.get('results', [{}])[0].get('data', [])
-                    if s_data:
-                        df = pd.DataFrame(s_data).rename(columns={'group': ep, 'ratio': 'value'})
-                        if ep == "device": df['device'] = df['device'].replace({'mo': '모바일', 'pc': 'PC'})
-                        if ep == "gender": df['gender'] = df['gender'].replace({'f': '여성', 'm': '남성'})
-                        result[f'{ep}_ratio'] = df
-                break # 데이터 찾기 성공 시 루프 종료
-        except:
-            continue
+    # 3. 데이터 부재 시 AI 예측값으로 보충
+    if not found_real_data or not result['category_ranking']:
+        ai_data = generate_ai_estimates(keyword, category_name)
+        if ai_data:
+            result['is_ai_generated'] = True
+            if not result['category_ranking']: result['category_ranking'] = ai_data['ranking']
+            if result['device_ratio'] is None:
+                result['device_ratio'] = pd.DataFrame([{'device': '모바일', 'value': ai_data['device']['mo']},
+                                                       {'device': 'PC', 'value': ai_data['device']['pc']}])
+            if result['gender_ratio'] is None:
+                result['gender_ratio'] = pd.DataFrame([{'gender': '여성', 'value': ai_data['gender']['f']},
+                                                       {'gender': '남성', 'value': ai_data['gender']['m']}])
+            if result['age_ratio'] is None:
+                result['age_ratio'] = pd.DataFrame([{'age': f"{k}대", 'value': v} for k, v in ai_data['age'].items()])
 
     return result
 
 def fetch_trend_data(tab_name, main_keyword, category_name=None):
     state_key = f"main_trend_data_{tab_name}"
     cid = get_naver_category_id(category_name)
-    data = fetch_naver_all_data(main_keyword, cid)
-    if data:
-        st.session_state[state_key] = data
-        return data, data
-    return None, None
+    data = fetch_naver_all_data(main_keyword, cid, category_name)
+    st.session_state[state_key] = data
+    return data, data
