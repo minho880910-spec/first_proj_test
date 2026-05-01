@@ -18,7 +18,7 @@ def get_naver_headers():
 def get_naver_category_id(category_name):
     """
     네이버 쇼핑인사이트 표준 카테고리 매핑
-    사용자가 제시한 Naver 카테고리 목록을 기준으로 ID를 할당합니다.
+    매핑되지 않은 경우 None을 반환합니다.
     """
     mapping = {
         "패션의류": "50000000",
@@ -34,11 +34,9 @@ def get_naver_category_id(category_name):
         "면세점": "50000010",
         "도서": "50000011"
     }
-    # 매핑되지 않은 경우 기본값으로 '생활/건강' 등을 반환하거나 '50000000' 반환
-    return mapping.get(category_name, "50000000")
+    return mapping.get(category_name) # 매핑 없으면 None 반환
 
 def get_naver_related_keywords(keyword):
-    """네이버 자동완성 API를 활용한 실시간 연관어 추출"""
     import urllib.parse
     encoded_keyword = urllib.parse.quote(keyword)
     url = f"https://ac.search.naver.com/nx/ac?q={encoded_keyword}&con=0&frm=nv&ans=2&r_format=json&r_enc=UTF-8&r_unicode=0&t_koreng=1&run=2&rev=4&q_enc=UTF-8&st=100"
@@ -50,7 +48,7 @@ def get_naver_related_keywords(keyword):
                 return [item[0] for item in items[0]][:10]
     except:
         pass
-    return [f"{keyword} 추천", f"{keyword} 인기", f"{keyword} 순위"]
+    return []
 
 def fetch_shopping_insight_data(endpoint, body):
     url = f"https://openapi.naver.com/v1/datalab/shopping/category/{endpoint}"
@@ -62,12 +60,26 @@ def fetch_shopping_insight_data(endpoint, body):
         return None
 
 def fetch_naver_all_data(keyword, category_id):
-    """통합 검색어 추이 + 쇼핑인사이트 인구통계 및 랭킹 통합"""
+    """카테고리 ID가 없으면 빈 데이터를 반환합니다."""
+    # 1. 연관 검색어는 카테고리와 무관하게 먼저 추출
+    related = get_naver_related_keywords(keyword)
+
+    # 2. 카테고리 ID가 없는 경우(매핑 실패) 조기 종료
+    if not category_id:
+        return {
+            'time_series': pd.DataFrame(),
+            'device_ratio': None,
+            'gender_ratio': None,
+            'age_ratio': None,
+            'top_queries': related,
+            'category_ranking': []
+        }
+
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     common_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date", "category": category_id}
 
-    # 1. 시계열 검색 추이 (Naver DataLab Search API)
+    # 시계열 검색 추이
     search_url = "https://openapi.naver.com/v1/datalab/search"
     search_body = {
         "startDate": start_date, "endDate": end_date, "timeUnit": "date",
@@ -79,26 +91,20 @@ def fetch_naver_all_data(keyword, category_id):
     except:
         df_time = pd.DataFrame()
 
-    # 2. 기기별 비중 가공 (mo/pc -> 모바일/PC)
+    # 인구통계 및 랭킹 데이터 호출
     res_device = fetch_shopping_insight_data("device", common_body)
-    df_device = None
-    if res_device:
-        df_device = pd.DataFrame(res_device['results'][0]['data']).rename(columns={'group': 'device', 'ratio': 'value'})
+    df_device = pd.DataFrame(res_device['results'][0]['data']).rename(columns={'group': 'device', 'ratio': 'value'}) if res_device else None
+    if df_device is not None:
         df_device['device'] = df_device['device'].replace({'mo': '모바일', 'pc': 'PC'})
 
-    # 3. 성별 비중 가공 (f/m -> 여성/남성)
     res_gender = fetch_shopping_insight_data("gender", common_body)
-    df_gender = None
-    if res_gender:
-        df_gender = pd.DataFrame(res_gender['results'][0]['data']).rename(columns={'group': 'gender', 'ratio': 'value'})
+    df_gender = pd.DataFrame(res_gender['results'][0]['data']).rename(columns={'group': 'gender', 'ratio': 'value'}) if res_gender else None
+    if df_gender is not None:
         df_gender['gender'] = df_gender['gender'].replace({'f': '여성', 'm': '남성'})
 
-    # 4. 연령별 비중
     res_age = fetch_shopping_insight_data("age", common_body)
     df_age = pd.DataFrame(res_age['results'][0]['data']).rename(columns={'group': 'age', 'ratio': 'value'}) if res_age else None
 
-    # 5. 연관어 및 카테고리 키워드 랭킹
-    related = get_naver_related_keywords(keyword)
     res_rank = fetch_shopping_insight_data("keywords", common_body)
     top_rank = [item['name'] for item in res_rank['results'][0]['data'][:10]] if res_rank else []
 
