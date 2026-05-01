@@ -11,29 +11,35 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
         st.divider()
         st.markdown("#### 📂 카테고리 인기 검색어")
         
-        # [중요] 세션에 저장된 AI 분류 결과를 가장 먼저 확인
+        # [수정] 검색어가 바뀔 때 카테고리 셀렉트박스 상태 초기화 로직
         auto_cat = st.session_state.get(f"trend_category_{tab_name}")
         
-        # '해당 카테고리 없음'이거나 목록에 없을 때를 대비한 인덱스 계산
-        if auto_cat in categories:
-            current_idx = categories.index(auto_cat)
-        else:
-            current_idx = 0
-            
+        # 세션에 기록된 마지막 검색어와 현재 검색어를 비교하여 카테고리 강제 변경
+        last_keyword = st.session_state.get(f"last_keyword_{tab_name}", "")
+        
+        # 새로운 검색어가 입력된 경우, 위젯의 index를 강제로 auto_cat에 맞춤
+        if global_main_keyword != last_keyword:
+            st.session_state[f"last_keyword_{tab_name}"] = global_main_keyword
+            # 새로운 검색어일 때 셀렉트박스 값 강제 업데이트
+            if auto_cat in categories:
+                st.session_state[f"sb_{tab_name}"] = auto_cat
+
+        # 셀렉트박스 생성
         category = st.selectbox(
             "카테고리 선택", 
             categories, 
-            index=current_idx, 
             key=f"sb_{tab_name}", 
             label_visibility="collapsed"
         )
-        st.caption(f"현재 선택된 카테고리: {category}")
+        st.caption(f"현재 분석 대상: {category}")
 
+    # 데이터 호출
     main_keyword = global_main_keyword if prompt_input else category
     main_data, _ = fetch_trend_data(tab_name, main_keyword, category)
 
     if main_data:
         with col1:
+            # (1) 검색 추이 그래프
             st.markdown(f"### <span style='color:#00c853'>{main_keyword}</span> 검색 추이", unsafe_allow_html=True)
             df_time = main_data.get('time_series')
             if df_time is not None and not df_time.empty:
@@ -43,8 +49,9 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                 ).properties(height=350)
                 st.altair_chart(chart, use_container_width=True)
 
+            # (2) 하단 비중 그래프
             if main_data.get('error') == 'mapping_failed':
-                st.warning(f"⚠️ '{category}' 카테고리는 현재 통계 데이터가 지원되지 않습니다.")
+                st.warning(f"⚠️ '{category}' 카테고리는 쇼핑 통계 매핑 정보가 부족합니다.")
             else:
                 st.write("") 
                 subcol1, subcol2, subcol3 = st.columns(3)
@@ -74,6 +81,7 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                         ).properties(height=200)
                         st.altair_chart(c, use_container_width=True)
 
+        # 3. 우측 실시간 정보 (연관어)
         with keyword_related_container:
             st.markdown(f"#### 🔍 {main_keyword} 연관어")
             queries = main_data.get('top_queries', [])
@@ -83,6 +91,7 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                     html += f"<div style='margin-bottom: 8px; font-size: 14px;'><strong style='color: #2e7d32; width: 25px; display: inline-block;'>{i+1}</strong> {q}</div>"
                 st.markdown(html + "</div>", unsafe_allow_html=True)
 
+        # 4. 우측 하단 카테고리 랭킹 (인기 검색어 순위)
         with col2:
             st.write("") 
             ranking = main_data.get('category_ranking', [])
@@ -92,6 +101,6 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                 for i, q in enumerate(ranking):
                     html_rank += f"<div style='margin-bottom: 10px; font-size: 14px;'><strong style='color: #0056b3; width: 25px; display: inline-block;'>{i+1}</strong> {q}</div>"
                 st.markdown(html_rank + "</div>", unsafe_allow_html=True)
-            else:
-                # [수정] 랭킹이 진짜 없을 때만 메시지 출력
-                st.caption(f"'{category}' 현재 순위 정보 없음")
+            elif category != "해당 카테고리 없음":
+                # 데이터가 안 나올 때 디버깅용 메시지
+                st.info(f"'{category}' 랭킹 정보를 호출 중입니다.")

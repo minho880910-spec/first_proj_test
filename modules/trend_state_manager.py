@@ -15,7 +15,7 @@ def get_naver_headers():
     }
 
 def get_naver_category_id(category_name):
-    """표준 카테고리 ID 매핑 (양말, 단팥빵 대응 포함)"""
+    """네이버 쇼핑 대분류 카테고리 ID 매핑"""
     mapping = {
         "패션의류": "50000000", "패션잡화": "50000001", "화장품/미용": "50000002",
         "디지털/가전": "50000003", "가구/인테리어": "50000004", "출산/육아": "50000005",
@@ -44,11 +44,12 @@ def fetch_shopping_insight_data(endpoint, body):
     except: return None
 
 def fetch_naver_all_data(keyword, category_id):
-    """검색어 추이 및 쇼핑 데이터 통합 추출"""
+    """통합 검색 추이 + 쇼핑 인사이트 통계/랭킹"""
     related = get_naver_related_keywords(keyword)
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     
+    # 1. 검색어 추이 (네이버 통합검색 API)
     search_url = "https://openapi.naver.com/v1/datalab/search"
     search_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date",
                    "keywordGroups": [{"groupName": keyword, "keywords": [keyword]}]}
@@ -58,18 +59,22 @@ def fetch_naver_all_data(keyword, category_id):
     except:
         df_time = pd.DataFrame()
 
-    result = {'time_series': df_time, 'top_queries': related, 'device_ratio': None, 'gender_ratio': None, 'age_ratio': None, 'category_ranking': []}
+    result = {
+        'time_series': df_time, 'top_queries': related,
+        'device_ratio': None, 'gender_ratio': None, 'age_ratio': None, 'category_ranking': []
+    }
 
     if not category_id:
         result['error'] = 'mapping_failed'
         return result
 
+    # 2. 쇼핑 인사이트 데이터 (기기/성별/연령/키워드랭킹)
     common_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date", "category": category_id}
     
-    # 세부 지표 호출
+    # 지표별 병렬 호출 및 파싱
     for ep in ["device", "gender", "age", "keywords"]:
         res = fetch_shopping_insight_data(ep, common_body)
-        if res and 'results' in res and res['results']:
+        if res and 'results' in res and len(res['results']) > 0:
             data = res['results'][0]['data']
             if ep == "device":
                 df = pd.DataFrame(data).rename(columns={'group': 'device', 'ratio': 'value'})
@@ -82,7 +87,8 @@ def fetch_naver_all_data(keyword, category_id):
             elif ep == "age":
                 result['age_ratio'] = pd.DataFrame(data).rename(columns={'group': 'age', 'ratio': 'value'})
             elif ep == "keywords":
-                result['category_ranking'] = [item['name'] for item in data[:10]]
+                # [수정] 랭킹 리스트 추출 로직 강화
+                result['category_ranking'] = [item.get('name') for item in data if item.get('name')][:10]
 
     return result
 
