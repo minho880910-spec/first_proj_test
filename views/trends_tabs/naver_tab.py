@@ -26,6 +26,7 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
 
     if main_data and isinstance(main_data, dict):
         with col1:
+            # (1) 검색 추이 차트
             st.markdown(f"### <span style='color:#00c853'>{main_keyword}</span> 검색 추이", unsafe_allow_html=True)
             df_time = main_data.get('time_series')
             if df_time is not None and not df_time.empty:
@@ -35,13 +36,11 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                     tooltip=['date:T', 'clicks:Q']
                 ).properties(height=350)
                 st.altair_chart(chart, use_container_width=True)
-            else:
-                st.info("해당 키워드에 대한 검색 추이 데이터가 없습니다.")
 
             st.write("") 
             subcol1, subcol2, subcol3 = st.columns(3)
             
-            # 비중 분석 (데이터가 있을 때만 렌더링)
+            # (2) 기기별
             with subcol1:
                 st.caption("💻 기기별")
                 df_device = main_data.get('device_ratio')
@@ -51,6 +50,7 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                     ).properties(height=200)
                     st.altair_chart(c, use_container_width=True)
             
+            # (3) 성별
             with subcol2:
                 st.caption("👫 성별")
                 df_gender = main_data.get('gender_ratio')
@@ -60,12 +60,16 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                     ).properties(height=200)
                     st.altair_chart(c, use_container_width=True)
             
+            # (4) 연령별 (age 텍스트 제거)
             with subcol3:
                 st.caption("🎂 연령별")
                 df_age = main_data.get('age_ratio')
                 if df_age is not None:
                     c = alt.Chart(df_age).mark_bar(color='#448aff').encode(
-                        x=alt.X('age:N', axis=alt.Axis(labelAngle=0)), y='value:Q', tooltip=['age', 'value']
+                        # title=None을 설정하여 하단의 'age' 텍스트를 제거합니다.
+                        x=alt.X('age:N', title=None, axis=alt.Axis(labelAngle=0)), 
+                        y=alt.Y('value:Q', axis=None), 
+                        tooltip=['age', 'value']
                     ).properties(height=200)
                     st.altair_chart(c, use_container_width=True)
 
@@ -76,17 +80,21 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
         if main_queries:
             html = f"<div style='background-color: #f1f8e9; padding: 15px; border-radius: 10px; height: 230px; overflow-y: auto;'>"
             for i, q in enumerate(main_queries):
-                html += f"<div style='margin-bottom: 8px;'><strong style='color: #2e7d32;'>{i+1}</strong> {q}</div>"
+                html += f"<div style='margin-bottom: 8px; font-size: 14px;'><strong style='color: #2e7d32;'>{i+1}</strong> {q}</div>"
             st.markdown(html + "</div>", unsafe_allow_html=True)
 
     with col2:
         st.write("") 
-        cat_ranking = cat_data.get('category_ranking', []) if isinstance(cat_data, dict) else []
-        if cat_ranking:
+        # [수정] cat_data에서 카테고리 랭킹을 가져오는 로직 강화
+        ranking = []
+        if isinstance(cat_data, dict):
+            ranking = cat_data.get('category_ranking', [])
+        
+        if ranking:
             st.markdown(f"#### 🏆 {category} 인기순")
             html = f"<div style='background-color: #f9f9fc; padding: 15px; border-radius: 10px; height: 230px; overflow-y: auto;'>"
-            for i, q in enumerate(cat_ranking):
-                html += f"<div style='margin-bottom: 8px;'><strong style='color: #0056b3;'>{i+1}</strong> {q}</div>"
+            for i, q in enumerate(ranking):
+                html += f"<div style='margin-bottom: 10px; font-size: 14px;'><strong style='color: #0056b3;'>{i+1}</strong> {q}</div>"
             st.markdown(html + "</div>", unsafe_allow_html=True)
         else:
-            st.caption("카테고리 랭킹 정보가 없습니다.")
+            st.caption(f"'{category}' 카테고리 랭킹 정보가 없습니다.")

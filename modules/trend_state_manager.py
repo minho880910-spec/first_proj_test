@@ -18,7 +18,7 @@ def get_naver_headers():
 def get_naver_category_id(category_name):
     """
     네이버 쇼핑인사이트 표준 카테고리 매핑
-    매핑되지 않은 경우 None을 반환합니다.
+    '화장품/미용' 등 특수문자가 포함된 명칭을 정확히 매칭합니다.
     """
     mapping = {
         "패션의류": "50000000",
@@ -34,7 +34,7 @@ def get_naver_category_id(category_name):
         "면세점": "50000010",
         "도서": "50000011"
     }
-    return mapping.get(category_name) # 매핑 없으면 None 반환
+    return mapping.get(category_name)
 
 def get_naver_related_keywords(keyword):
     import urllib.parse
@@ -60,11 +60,9 @@ def fetch_shopping_insight_data(endpoint, body):
         return None
 
 def fetch_naver_all_data(keyword, category_id):
-    """카테고리 ID가 없으면 빈 데이터를 반환합니다."""
-    # 1. 연관 검색어는 카테고리와 무관하게 먼저 추출
     related = get_naver_related_keywords(keyword)
 
-    # 2. 카테고리 ID가 없는 경우(매핑 실패) 조기 종료
+    # 카테고리 매핑 실패 시(카테고리 없음 선택 등) 기본 연관어만 반환
     if not category_id:
         return {
             'time_series': pd.DataFrame(),
@@ -79,7 +77,7 @@ def fetch_naver_all_data(keyword, category_id):
     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     common_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date", "category": category_id}
 
-    # 시계열 검색 추이
+    # 통합 검색어 추이 호출
     search_url = "https://openapi.naver.com/v1/datalab/search"
     search_body = {
         "startDate": start_date, "endDate": end_date, "timeUnit": "date",
@@ -91,20 +89,23 @@ def fetch_naver_all_data(keyword, category_id):
     except:
         df_time = pd.DataFrame()
 
-    # 인구통계 및 랭킹 데이터 호출
+    # 기기별 비중 (한글화)
     res_device = fetch_shopping_insight_data("device", common_body)
     df_device = pd.DataFrame(res_device['results'][0]['data']).rename(columns={'group': 'device', 'ratio': 'value'}) if res_device else None
     if df_device is not None:
         df_device['device'] = df_device['device'].replace({'mo': '모바일', 'pc': 'PC'})
 
+    # 성별 비중 (한글화)
     res_gender = fetch_shopping_insight_data("gender", common_body)
     df_gender = pd.DataFrame(res_gender['results'][0]['data']).rename(columns={'group': 'gender', 'ratio': 'value'}) if res_gender else None
     if df_gender is not None:
         df_gender['gender'] = df_gender['gender'].replace({'f': '여성', 'm': '남성'})
 
+    # 연령별 비중
     res_age = fetch_shopping_insight_data("age", common_body)
     df_age = pd.DataFrame(res_age['results'][0]['data']).rename(columns={'group': 'age', 'ratio': 'value'}) if res_age else None
 
+    # 카테고리 키워드 랭킹 (인기 검색어)
     res_rank = fetch_shopping_insight_data("keywords", common_body)
     top_rank = [item['name'] for item in res_rank['results'][0]['data'][:10]] if res_rank else []
 
