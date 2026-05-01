@@ -9,7 +9,7 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
     with col2:
         keyword_related_container = st.container()
         st.divider()
-        st.markdown("#### 카테고리 랭킹", unsafe_allow_html=True)
+        st.markdown("#### 📂 카테고리 선택", unsafe_allow_html=True)
         cat_col, _ = st.columns([1, 0.1])
         with cat_col:
             auto_cat = st.session_state.get(f"trend_category_{tab_name}", categories[0])
@@ -65,32 +65,35 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                 df_age = main_data.get('age_ratio')
                 if df_age is not None and not df_age.empty:
                     age_chart = alt.Chart(df_age).mark_bar(color='#448aff', cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
-                        # labelAngle=0 설정을 통해 숫자를 수평으로 바르게 표시합니다.
-                        x=alt.X('age:N', title='', axis=alt.Axis(labelAngle=0)), 
+                        x=alt.X('age:N', title='', axis=alt.Axis(labelAngle=0)), # 축 각도 수평 고정
                         y=alt.Y('value:Q', title='', axis=None),
                         tooltip=['age', 'value']
                     ).properties(height=220)
                     st.altair_chart(age_chart, use_container_width=True)
 
-        with keyword_related_container:
-            st.markdown(f"#### 🔍 {main_keyword} 연관어", unsafe_allow_html=True)
-            main_queries = main_data.get('top_queries', [])
-            if main_queries:
-                html_bg = "background-color: #f1f8e9; border: 1px solid #c8e6c9;"
-                html_content = f"<div style='{html_bg} padding: 15px; border-radius: 10px; height: 230px; overflow-y: auto; color: #333;'>"
-                for i, q in enumerate(main_queries):
-                    html_content += f"<div style='margin-bottom: 8px; font-size: 14px;'><strong style='color: #2e7d32; width: 25px; display: inline-block;'>{i+1}</strong> {q}</div>"
-                html_content += "</div>"
-                st.markdown(html_content, unsafe_allow_html=True)
+    # 우측 실시간 데이터 렌더링
+    with keyword_related_container:
+        st.markdown(f"#### 🔍 {main_keyword} 연관어", unsafe_allow_html=True)
+        main_queries = main_data.get('top_queries', []) if main_data else []
+        if main_queries:
+            html_bg = "background-color: #f1f8e9; border: 1px solid #c8e6c9;"
+            html_content = f"<div style='{html_bg} padding: 15px; border-radius: 10px; height: 230px; overflow-y: auto; color: #333;'>"
+            for i, q in enumerate(main_queries):
+                html_content += f"<div style='margin-bottom: 8px; font-size: 14px;'><strong style='color: #2e7d32; width: 25px; display: inline-block;'>{i+1}</strong> {q}</div>"
+            html_content += "</div>"
+            st.markdown(html_content, unsafe_allow_html=True)
 
-        with col2:
-            st.write("") 
-            cat_ranking = cat_data.get('category_ranking', []) if cat_data else []
-            if cat_ranking:
-                st.markdown(f"#### 🏆 {category} 인기순", unsafe_allow_html=True)
-                html_bg2 = "background-color: #f9f9fc; border: 1px solid #e0e0e0;"
-                html_content2 = f"<div style='{html_bg2} padding: 15px; border-radius: 10px; height: 230px; overflow-y: auto; color: #333;'>"
-                for i, q in enumerate(cat_ranking):
-                    html_content2 += f"<div style='margin-bottom: 8px; font-size: 14px;'><strong style='color: #0056b3; width: 25px; display: inline-block;'>{i+1}</strong> {q}</div>"
-                html_content2 += "</div>"
-                st.markdown(html_content2, unsafe_allow_html=True)
+    with col2:
+        st.write("") 
+        # 카테고리 인기순 데이터 노출
+        cat_ranking = cat_data.get('category_ranking', []) if isinstance(cat_data, dict) else []
+        if cat_ranking:
+            st.markdown(f"#### 🏆 {category} 인기순", unsafe_allow_html=True)
+            html_bg2 = "background-color: #f9f9fc; border: 1px solid #e0e0e0;"
+            html_content2 = f"<div style='{html_bg2} padding: 15px; border-radius: 10px; height: 230px; overflow-y: auto; color: #333;'>"
+            for i, q in enumerate(cat_ranking):
+                html_content2 += f"<div style='margin-bottom: 8px; font-size: 14px;'><strong style='color: #0056b3; width: 25px; display: inline-block;'>{i+1}</strong> {q}</div>"
+            html_content2 += "</div>"
+            st.markdown(html_content2, unsafe_allow_html=True)
+        else:
+            st.info(f"'{category}' 인기 검색어를 불러올 수 없습니다.")

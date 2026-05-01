@@ -60,27 +60,25 @@ def fetch_naver_all_data(keyword, category_id):
     res_search = requests.post(search_url, json=search_body, headers=get_naver_headers()).json()
     df_time = pd.DataFrame(res_search['results'][0]['data']).rename(columns={'period': 'date', 'ratio': 'clicks'})
 
-    # 2. 기기별 비중 (mo -> 모바일, pc -> PC 변환)
+    # 2. 기기별 비중 (한글화)
     res_device = fetch_shopping_insight_data("device", common_body)
+    df_device = None
     if res_device:
         df_device = pd.DataFrame(res_device['results'][0]['data']).rename(columns={'group': 'device', 'ratio': 'value'})
         df_device['device'] = df_device['device'].map({'mo': '모바일', 'pc': 'PC'})
-    else:
-        df_device = None
 
-    # 3. 성별 비중 (f -> 여성, m -> 남성 변환)
+    # 3. 성별 비중 (한글화)
     res_gender = fetch_shopping_insight_data("gender", common_body)
+    df_gender = None
     if res_gender:
         df_gender = pd.DataFrame(res_gender['results'][0]['data']).rename(columns={'group': 'gender', 'ratio': 'value'})
         df_gender['gender'] = df_gender['gender'].map({'f': '여성', 'm': '남성'})
-    else:
-        df_gender = None
 
     # 4. 연령별 비중
     res_age = fetch_shopping_insight_data("age", common_body)
     df_age = pd.DataFrame(res_age['results'][0]['data']).rename(columns={'group': 'age', 'ratio': 'value'}) if res_age else None
 
-    # 5. 연관어 및 랭킹
+    # 5. 연관어 및 카테고리 랭킹
     related = get_naver_related_keywords(keyword)
     res_rank = fetch_shopping_insight_data("keywords", common_body)
     top_rank = [item['name'] for item in res_rank['results'][0]['data'][:10]] if res_rank else []
