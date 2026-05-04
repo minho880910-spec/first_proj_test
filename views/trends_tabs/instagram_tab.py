@@ -6,7 +6,7 @@ from modules.trend_state_manager import fetch_trend_data
 def render(tab_name: str, categories: list, prompt_input: str, global_main_keyword: str):
     col1, col2 = st.columns([2.5, 1])
     
-    # 카테고리 동기화 로직 (Naver 탭과 동일)
+    # 카테고리 동기화 로직
     auto_cat = st.session_state.get(f"trend_category_{tab_name}")
     last_keyword = st.session_state.get(f"last_keyword_{tab_name}", "")
     if global_main_keyword != last_keyword:
@@ -26,42 +26,54 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
                         f"<span style='font-size: 0.8rem; color: gray; font-weight: normal; margin-left: 10px;'>최근 1달</span>", 
                         unsafe_allow_html=True)
             df_time = main_data.get('time_series')
-            if df_time is not None and not df_time.empty:
+            if isinstance(df_time, pd.DataFrame) and not df_time.empty:
                 chart = alt.Chart(df_time).mark_line(color='#00E5FF', strokeWidth=3, point=True).encode(
                     x=alt.X('date:T', title='', axis=alt.Axis(format='%m-%d', labelAngle=0)),
-                    y=alt.Y('clicks:Q', title='언급지수'), tooltip=['date:T', 'clicks:Q']
+                    y=alt.Y('clicks:Q', title='언급지수'), 
+                    tooltip=['date:T', 'clicks:Q']
                 ).properties(height=350)
                 st.altair_chart(chart, use_container_width=True)
 
             # 2. 비중 분석 (미디어/성별/연령)
             st.write("---")
             subcol1, subcol2, subcol3 = st.columns(3)
+            
             with subcol1:
                 st.caption("📱 미디어 유형")
                 df_media = main_data.get('media_ratio')
-                if df_media is not None and not df_media.empty:
+                if isinstance(df_media, pd.DataFrame) and not df_media.empty:
+                    # 데이터프레임의 컬럼명인 'type'과 'value'를 명확히 지정
                     chart = alt.Chart(df_media).mark_arc(innerRadius=50).encode(
                         theta=alt.Theta(field="value", type="quantitative"),
-                        color=alt.Color(field="type", type="nominal"),
+                        color=alt.Color(field="type", type="nominal", legend=alt.Legend(orient="bottom", title=None)),
                         tooltip=['type', 'value']
-                    ).properties(height=180)
+                    ).properties(height=220)
                     st.altair_chart(chart, use_container_width=True)
+                else:
+                    st.info("데이터 분석 중")
+
             with subcol2:
                 st.caption("👫 성별 비중")
-                df = main_data.get('gender_ratio')
-                if df is not None:
-                    c = alt.Chart(df).mark_arc(innerRadius=50).encode(
-                        theta="value:Q", color=alt.Color("gender:N", scale=alt.Scale(range=['#FF00FF', '#448aff'])), tooltip=['gender', 'value']
-                    ).properties(height=180)
+                df_gen = main_data.get('gender_ratio')
+                if isinstance(df_gen, pd.DataFrame) and not df_gen.empty:
+                    c = alt.Chart(df_gen).mark_arc(innerRadius=50).encode(
+                        theta=alt.Theta(field="value", type="quantitative"),
+                        color=alt.Color(field="gender", type="nominal", 
+                                        scale=alt.Scale(range=['#FF00FF', '#448aff']),
+                                        legend=alt.Legend(orient="bottom", title=None)),
+                        tooltip=['gender', 'value']
+                    ).properties(height=220)
                     st.altair_chart(c, use_container_width=True)
+
             with subcol3:
                 st.caption("🎂 연령별 비중")
-                df = main_data.get('age_ratio')
-                if df is not None:
-                    c = alt.Chart(df).mark_bar(color='#00E5FF').encode(
+                df_age = main_data.get('age_ratio')
+                if isinstance(df_age, pd.DataFrame) and not df_age.empty:
+                    c = alt.Chart(df_age).mark_bar(color='#00E5FF').encode(
                         x=alt.X('age:N', title='', axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y('value:Q', axis=None), tooltip=['age', 'value']
-                    ).properties(height=180)
+                        y=alt.Y('value:Q', axis=None), 
+                        tooltip=['age', 'value']
+                    ).properties(height=220)
                     st.altair_chart(c, use_container_width=True)
 
         with col2:
@@ -80,16 +92,12 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
             st.divider()
 
             # 4. 카테고리 인기 해시태그
-            cat_header_col1, cat_header_col2 = st.columns([1.2, 1])
-            with cat_header_col1:
-                category = st.selectbox("카테고리 선택", categories, key=f"sb_{tab_name}", label_visibility="collapsed")
-            with cat_header_col2:
-                st.markdown("#### 인기 해시태그")
-            st.caption("최근 1주일")
+            st.markdown("#### 카테고리별 인기 해시태그")
+            category = st.selectbox("카테고리 선택", categories, key=f"sb_{tab_name}", label_visibility="collapsed")
+            st.caption("최근 1주일 고정 데이터")
 
             ranking = main_data.get('category_ranking', [])
             if ranking:
-                st.write("")
                 html_rank = f"<div style='background-color: #1a1b26; padding: 15px; border-radius: 10px; height: 400px; overflow-y: auto; color: #a9b1d6;'>"
                 for i, q in enumerate(ranking):
                     display_q = f"#{q.replace(' ', '')}"
