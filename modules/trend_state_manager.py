@@ -170,3 +170,5 @@ def fetch_trend_data(tab_name, main_keyword, category_name=None):
             result['realtime_keywords'] = result['top_queries'][:7]
         else:
             result['realtime_keywords'] = [f"{main_keyword} 반응", "실시간", "인기", "이슈"]
+    st.session_state[state_key] = result
+    return result, result
