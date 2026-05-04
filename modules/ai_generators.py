@@ -25,10 +25,21 @@ def get_comprehensive_analysis(keyword, category_name):
     {{
       "region_ranking": [{{"region": "서울", "score": 100}}],
       "faqs": ["질문1", "질문2"],
-      "hot_discussions": [{{"title": "제목", "replies": 10}}],
+      "hot_discussions": [
+        {{"title": "게시글 제목", "replies": 10, "quotes": 5}}  # 'quotes' 키를 반드시 포함할 것
+      ],
       "top_influencers": [{{"name": "이름", "handle": "@id"}}],
-      "x_sentiment": {{"sentiment_stats": [60, 20, 15, 5], "emotional_words": ["기대"], "satisfaction_score": 80, "tips": []}},
-      "demographics": {{"device": {{"mo": 70, "pc": 30}}, "gender": {{"f": 50, "m": 50}}, "age": {{"10": 10, "20": 20, "30": 30, "40": 20, "50": 15, "60": 5}}}}
+      "x_sentiment": {{
+          "sentiment_stats": [60, 20, 15, 5], 
+          "emotional_words": ["기대"], 
+          "satisfaction_score": 80, 
+          "tips": []
+      }},
+      "demographics": {{
+          "device": {{"mo": 70, "pc": 30}}, 
+          "gender": {{"f": 50, "m": 50}}, 
+          "age": {{"10": 10, "20": 20, "30": 30, "40": 20, "50": 15, "60": 5}}
+      }}
     }}
     """
     return generate_ai_json(prompt)

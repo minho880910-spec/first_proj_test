@@ -65,7 +65,12 @@ def render(tab_name: str, prompt_input: str, global_main_keyword: str):
                 for i, disc in enumerate(hot_discussions[:3]):
                     with cols[i]:
                         header = f"<div style='font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #a9b1d6;'><span style='color: #4fc3f7;'>{i+1}</span> {disc['title']}</div>"
-                        stats = f"<div style='font-size: 12px; margin-bottom: 8px;'><span style='color: #00E5FF;'>↪ {disc['replies']}답글</span> &nbsp; <span style='color: #00E5FF;'>{disc['quotes']}인용</span></div>"
+                        stats = f"""
+                        <div style='font-size: 12px; margin-bottom: 8px;'>
+                            <span style='color: #00E5FF;'>↪ {disc.get('replies', 0)}답글</span> &nbsp; 
+                            <span style='color: #00E5FF;'>{disc.get('quotes', 0)}인용</span>
+                        </div>
+                        """
                         card = f"""
                         <div style='background-color: #1a1b26; border: 1px solid #292e42; border-radius: 12px; padding: 12px; color: #a9b1d6;'>
                             <div style='display: flex; align-items: center; margin-bottom: 8px;'>
