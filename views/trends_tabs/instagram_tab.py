@@ -6,129 +6,92 @@ from modules.trend_state_manager import fetch_trend_data
 def render(tab_name: str, categories: list, prompt_input: str, global_main_keyword: str):
     col1, col2 = st.columns([2.5, 1])
     
-    with col2:
-        keyword_related_container = st.container()
-        st.divider()
-        cat_col, title_col = st.columns([1, 1])
-        with cat_col:
-            category = st.selectbox("카테고리 선택", categories, key=f"trend_category_{tab_name}", label_visibility="collapsed")
-            st.caption("최근 1주일 기준")
-        with title_col:
-            st.markdown("#### 인기 해시태그", unsafe_allow_html=True)
+    # 카테고리 동기화 로직 (Naver 탭과 동일)
+    auto_cat = st.session_state.get(f"trend_category_{tab_name}")
+    last_keyword = st.session_state.get(f"last_keyword_{tab_name}", "")
+    if global_main_keyword != last_keyword:
+        st.session_state[f"last_keyword_{tab_name}"] = global_main_keyword
+        if auto_cat in categories:
+            st.session_state[f"sb_{tab_name}"] = auto_cat
 
-    main_keyword = global_main_keyword if prompt_input else category
-    main_data, cat_data = fetch_trend_data(tab_name, main_keyword, category)
+    # 데이터 호출
+    temp_category = st.session_state.get(f"sb_{tab_name}", categories[0])
+    main_keyword = global_main_keyword if prompt_input else temp_category
+    main_data, _ = fetch_trend_data(tab_name, main_keyword, temp_category)
 
-    # main_data가 존재하고 딕셔너리 형태일 때만 실행
     if main_data and isinstance(main_data, dict):
-        # 매핑 실패 에러가 있을 경우 경고 표시
-        if main_data.get('error') == 'mapping_failed':
-            with col1:
-                st.warning(f"⚠️ '{category}' 카테고리는 인스타그램 분석 매핑을 지원하지 않습니다.")
-
         with col1:
-            st.markdown(f"### <span style='color:#00E5FF'>{main_keyword}</span> 해시태그 언급량 <span style='font-size: 0.6em; color: #888888; font-weight: normal; margin-left: 8px;'>최근 1주일 기준</span>", unsafe_allow_html=True)
-            
-            # 1. 시계열 차트 안전하게 그리기
+            # 1. 언급량 차트
+            st.markdown(f"### <span style='color:#00E5FF'>{main_keyword}</span> 언급량 "
+                        f"<span style='font-size: 0.8rem; color: gray; font-weight: normal; margin-left: 10px;'>최근 1주일</span>", 
+                        unsafe_allow_html=True)
             df_time = main_data.get('time_series')
             if df_time is not None and not df_time.empty:
-                x_format = '%m-%d'
-                chart = alt.Chart(df_time).mark_line(color='#00E5FF', strokeWidth=2).encode(
-                    x=alt.X('date:T', title='', axis=alt.Axis(format=x_format, labelAngle=0, grid=False)),
-                    y=alt.Y('clicks:Q', title='', axis=alt.Axis(grid=True, tickCount=3))
+                chart = alt.Chart(df_time).mark_line(color='#00E5FF', strokeWidth=3, point=True).encode(
+                    x=alt.X('date:T', title='', axis=alt.Axis(format='%m-%d', labelAngle=0)),
+                    y=alt.Y('clicks:Q', title='언급지수'), tooltip=['date:T', 'clicks:Q']
                 ).properties(height=350)
                 st.altair_chart(chart, use_container_width=True)
-            else:
-                st.info("언급량 데이터가 없습니다.")
-            
-            st.markdown("#### 인게이지먼트 / 성별 / 연령별 비중 <span style='font-size: 0.6em; color: #888888; font-weight: normal; margin-left: 8px;'>최근 1주일 기준</span>", unsafe_allow_html=True)
+
+            # 2. 비중 분석 (미디어/성별/연령)
             st.write("---")
             subcol1, subcol2, subcol3 = st.columns(3)
-            
-            # 2. 미디어 유형 (device_ratio) 안전하게 그리기
             with subcol1:
-                st.caption("미디어 유형")
-                raw_device = main_data.get('device_ratio')
-                if raw_device is not None and not raw_device.empty:
-                    df_device = raw_device.copy()
-                    # 데이터 개수가 맞지 않을 경우를 대비한 처리
-                    labels = ['릴스', '사진/게시물']
-                    df_device['device'] = labels[:len(df_device)]
-                    d1_range = ['#00FF00', '#FF00FF']
-                    device_chart = alt.Chart(df_device).mark_arc(innerRadius=50).encode(
-                        theta=alt.Theta(field="value", type="quantitative"),
-                        color=alt.Color(field="device", type="nominal", scale=alt.Scale(range=d1_range), legend=alt.Legend(title=None, orient="bottom")),
-                        tooltip=['device', 'value']
-                    ).properties(height=250)
-                    st.altair_chart(device_chart, use_container_width=True)
-                else:
-                    st.write("데이터 없음")
-                
-            # 3. 성별 (gender_ratio) 안전하게 그리기
+                st.caption("📱 미디어 유형")
+                df = main_data.get('device_ratio')
+                if df is not None:
+                    # 인스타그램용 라벨 교체
+                    df['device'] = df['device'].replace({'모바일': '릴스', 'PC': '게시물'})
+                    c = alt.Chart(df).mark_arc(innerRadius=50).encode(
+                        theta="value:Q", color=alt.Color("device:N", scale=alt.Scale(range=['#00FF00', '#FF00FF'])), tooltip=['device', 'value']
+                    ).properties(height=180)
+                    st.altair_chart(c, use_container_width=True)
             with subcol2:
-                st.caption("성별")
-                df_gender = main_data.get('gender_ratio')
-                if df_gender is not None and not df_gender.empty:
-                    d2_range = ['#FF00FF', '#448aff']
-                    gender_chart = alt.Chart(df_gender).mark_arc(innerRadius=50).encode(
-                        theta=alt.Theta(field="value", type="quantitative"),
-                        color=alt.Color(field="gender", type="nominal", scale=alt.Scale(range=d2_range), legend=alt.Legend(title=None, orient="bottom")),
-                        tooltip=['gender', 'value']
-                    ).properties(height=250)
-                    st.altair_chart(gender_chart, use_container_width=True)
-                else:
-                    st.write("데이터 없음")
-                
-            # 4. 연령별 (age_ratio) 안전하게 그리기
+                st.caption("👫 성별 비중")
+                df = main_data.get('gender_ratio')
+                if df is not None:
+                    c = alt.Chart(df).mark_arc(innerRadius=50).encode(
+                        theta="value:Q", color=alt.Color("gender:N", scale=alt.Scale(range=['#FF00FF', '#448aff'])), tooltip=['gender', 'value']
+                    ).properties(height=180)
+                    st.altair_chart(c, use_container_width=True)
             with subcol3:
-                st.caption("연령별")
-                df_age = main_data.get('age_ratio')
-                if df_age is not None and not df_age.empty:
-                    age_chart = alt.Chart(df_age).mark_bar(color='#00E5FF', size=15).encode(
-                        x=alt.X('age:N', title='', axis=alt.Axis(labelAngle=0, grid=False)),
-                        y=alt.Y('value:Q', title='', axis=None),
-                        tooltip=['age', 'value']
-                    ).properties(height=250)
-                    st.altair_chart(age_chart, use_container_width=True)
-                else:
-                    st.write("데이터 없음")
-
-        # 우측 레이아웃 렌더링
-        mock_counts = ["3.2k", "2.1k", "1.6k", "1.2k", "900", "850", "700", "500", "450", "300"]
-        
-        with keyword_related_container:
-            st.markdown(f"#### 📸 <span style='color:#00E5FF'>{main_keyword}</span> 연관 해시태그 <span style='font-size: 0.6em; color: #888888; font-weight: normal; margin-left: 8px;'>최근 1주일 기준</span>", unsafe_allow_html=True)
-            main_queries = main_data.get('top_queries', [])
-            if main_queries:
-                html_bg = "background-color: transparent;"
-                num_color = "#00E5FF"
-                html_content_main = f"<div style='{html_bg} padding: 15px; border-radius: 10px; height: 250px; overflow-y: auto; color: inherit; margin-bottom: 10px;'>"
-                for i, q in enumerate(main_queries):
-                    if q:
-                        display_q = f"#{q.replace(' ', '')}"
-                        count_html = f"<span style='color: #888888;'>{mock_counts[i % len(mock_counts)]}</span>"
-                        html_content_main += f"<div style='display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px;'><div style='display:flex; align-items:center;'><strong style='color: {num_color}; width: 25px;'>{i+1}</strong> <span>{display_q}</span></div> {count_html}</div>"
-                html_content_main += "</div>"
-                st.markdown(html_content_main, unsafe_allow_html=True)
-            else:
-                st.info("연관 데이터가 없습니다.")
+                st.caption("🎂 연령별 비중")
+                df = main_data.get('age_ratio')
+                if df is not None:
+                    c = alt.Chart(df).mark_bar(color='#00E5FF').encode(
+                        x=alt.X('age:N', title='', axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('value:Q', axis=None), tooltip=['age', 'value']
+                    ).properties(height=180)
+                    st.altair_chart(c, use_container_width=True)
 
         with col2:
-            st.write("")
-            queries = cat_data.get('top_queries', []) if cat_data and isinstance(cat_data, dict) else []
-            if queries:
-                html_bg2 = "background-color: transparent;"
-                num_color2 = "#00E5FF"
-                html_content = f"<div style='{html_bg2} padding: 15px; border-radius: 10px; height: 250px; overflow-y: auto; color: inherit;'>"
-                for i, q in enumerate(queries):
-                    if q:
-                        display_q = f"#{q.replace(' ', '')}"
-                        html_content += f"<div style='display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px;'><div style='display:flex; align-items:center;'><strong style='color: {num_color2}; width: 25px;'>{i+1}</strong> <span>{display_q}</span></div> </div>"
-                html_content += "</div>"
-                st.markdown(html_content, unsafe_allow_html=True)
-            else:
-                st.info("인기 데이터가 없습니다.")
+            # 3. 연관 해시태그
+            st.markdown(f"#### 🔍 {main_keyword} 연관 해시태그")
+            main_queries = main_data.get('top_queries', [])
+            mock_counts = ["3.2k", "2.1k", "1.6k", "1.2k", "900", "850", "700", "500", "450", "300"]
+            if main_queries:
+                html_rel = "<div style='background-color: #1a1b26; padding: 15px; border-radius: 10px; height: 230px; overflow-y: auto; color: #a9b1d6;'>"
+                for i, q in enumerate(main_queries):
+                    display_q = f"#{q.replace(' ', '')}"
+                    count = mock_counts[i % len(mock_counts)]
+                    html_rel += f"<div style='display: flex; justify-content: space-between; margin-bottom: 10px;'><div style='display:flex;'><strong style='color: #00E5FF; width: 25px;'>{i+1}</strong> <span>{display_q}</span></div> <span style='color:#888;'>{count}</span></div>"
+                st.markdown(html_rel + "</div>", unsafe_allow_html=True)
 
-    elif main_data:
-        # 데이터가 딕셔너리가 아닌 경우 예외 디스플레이
-        st.write("데이터 형식이 올바르지 않습니다.")
+            st.divider()
+
+            # 4. 카테고리 인기 해시태그
+            cat_header_col1, cat_header_col2 = st.columns([1.2, 1])
+            with cat_header_col1:
+                category = st.selectbox("카테고리 선택", categories, key=f"sb_{tab_name}", label_visibility="collapsed")
+            with cat_header_col2:
+                st.markdown("#### 인기 해시태그")
+            st.caption("최근 1주일")
+
+            ranking = main_data.get('category_ranking', [])
+            if ranking:
+                st.write("")
+                html_rank = f"<div style='background-color: #1a1b26; padding: 15px; border-radius: 10px; height: 400px; overflow-y: auto; color: #a9b1d6;'>"
+                for i, q in enumerate(ranking):
+                    display_q = f"#{q.replace(' ', '')}"
+                    html_rank += f"<div style='margin-bottom: 12px; font-size: 14px;'><strong style='color: #00E5FF; width: 25px; display: inline-block;'>{i+1}</strong> {display_q}</div>"
+                st.markdown(html_rank + "</div>", unsafe_allow_html=True)
