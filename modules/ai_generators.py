@@ -18,28 +18,20 @@ def generate_ai_json(prompt):
         return None
 
 def get_comprehensive_analysis(keyword, category_name):
-    """구글 지역, FAQ, SNS 반응 및 인구통계 비중을 한 번에 생성"""
     prompt = f"""
     키워드 '{keyword}'와 카테고리 '{category_name}' 분석 JSON 생성.
-    형식:
+    반드시 아래의 키 명칭을 엄수할 것:
     {{
       "region_ranking": [{{"region": "서울", "score": 100}}],
       "faqs": ["질문1", "질문2"],
       "hot_discussions": [
-        {{"title": "게시글 제목", "replies": 10, "quotes": 5}}  # 'quotes' 키를 반드시 포함할 것
+        {{"title": "제목", "replies": 10, "quotes": 5}} 
       ],
-      "top_influencers": [{{"name": "이름", "handle": "@id"}}],
-      "x_sentiment": {{
-          "sentiment_stats": [60, 20, 15, 5], 
-          "emotional_words": ["기대"], 
-          "satisfaction_score": 80, 
-          "tips": []
-      }},
-      "demographics": {{
-          "device": {{"mo": 70, "pc": 30}}, 
-          "gender": {{"f": 50, "m": 50}}, 
-          "age": {{"10": 10, "20": 20, "30": 30, "40": 20, "50": 15, "60": 5}}
-      }}
+      "top_influencers": [
+        {{"name": "이름", "handle": "@아이디"}} 
+      ],
+      "x_sentiment": {{ ... }},
+      "demographics": {{ ... }}
     }}
     """
     return generate_ai_json(prompt)
