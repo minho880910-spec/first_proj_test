@@ -113,35 +113,30 @@ def get_threads_tab_ai_data(keyword):
     return {"hot_discussions": [], "top_influencers": []}
 
 def get_x_tab_ai_data(keyword):
-    """X(Twitter) 탭 전용: 실시간성 분석 및 감성/꿀팁 데이터 생성"""
+    """X(Twitter) 탭 전용: 감성 분석 및 팁 생성에 집중"""
     prompt = f"""
-    당신은 X(트위터) 트렌드 분석가입니다. 키워드 '{keyword}'에 대해 분석한 결과물만 JSON으로 응답하세요.
+    당신은 트위터 분석가입니다. 키워드 '{keyword}'에 대해 다음 구조로 JSON 응답만 하세요.
     
-    1. 'hot_discussions': 현재 X에서 화제가 되는 '{keyword}' 관련 대화 주제 3개
-    2. 'emotional_words': 유저들의 실제 반응(형용사/명사) 10개
-    3. 'sentiment_stats': 긍정, 중립, 부정, 기타 비율 (합계 100이 되는 숫자 리스트)
-    4. 'tips': 유저들에게 도움이 되는 실질적인 팁 3개
+    1. 'emotional_words': 실제 트위터 유저들이 쓸법한 반응 단어 10개
+    2. 'sentiment_stats': 긍정, 중립, 부정, 기타 비율 (합계 100)
+    3. 'satisfaction_score': 100점 만점 기준 점수
+    4. 'tips': '{keyword}' 관련 유용한 팁 3개
 
-    JSON 응답 형식:
+    구조:
     {{
-      "hot_discussions": ["주제1", "주제2", "주제3"],
       "x_sentiment": {{
-        "sentiment_stats": [65, 20, 10, 5],
-        "emotional_words": ["단어1", "단어2", "단어3", "단어4", "단어5", "단어6", "단어7", "단어8", "단어9", "단어10"],
-        "satisfaction_score": 85,
+        "sentiment_stats": [60, 20, 15, 5],
+        "emotional_words": ["단어1", "단어2", ...],
+        "satisfaction_score": 80,
         "tips": [
-          {{ "title": "팁1 제목", "highlight": "강조문구", "desc": "상세설명" }},
-          {{ "title": "팁2 제목", "highlight": "강조문구", "desc": "상세설명" }},
-          {{ "title": "팁3 제목", "highlight": "강조문구", "desc": "상세설명" }}
+          {{ "title": "팁제목", "highlight": "강조", "desc": "설명" }},
+          {{ "title": "팁제목", "highlight": "강조", "desc": "설명" }},
+          {{ "title": "팁제목", "highlight": "강조", "desc": "설명" }}
         ]
       }}
     }}
     """
-    
     data = generate_ai_json(prompt)
-    
-    # 데이터 누락 방지를 위한 최소한의 가드 로직
     if not data or not isinstance(data, dict):
-        data = {"hot_discussions": [], "x_sentiment": {}}
-        
+        data = {"x_sentiment": {}}
     return data
