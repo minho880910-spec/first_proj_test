@@ -118,26 +118,36 @@ def render(tab_name: str, prompt_input: str, global_main_keyword: str):
         with tips_container:
             st.markdown("<div style='text-align: right; font-size: 11px; color: #888888; margin-bottom: 5px;'><span>🔖 실시간 유저 노하우</span></div>", unsafe_allow_html=True)
             
-            tips = x_ai.get('tips', x_ai.get('user_tips', x_ai.get('knowhow', [])))
+            # 1. 다중 키 검사 (or 연산자를 사용하여 null이나 빈 리스트를 완벽히 걸러냄)
+            tips = x_ai.get('tips') or x_ai.get('user_tips') or x_ai.get('knowhow')
             
-            if tips and isinstance(tips, list):
-                tips_html = ""
-                for i, t in enumerate(tips[:3]):
-                    t_title = t.get('title', '정보')
-                    t_high = t.get('highlight', t.get('title', '실시간 노하우'))
-                    t_desc = t.get('desc', '상세 내용을 가져오지 못했습니다.')
+            # 2. AI가 빈 값을 줬을 때 앱이 깨지지 않도록 '무조건' 출력할 기본 데이터 강제 주입
+            if not tips or not isinstance(tips, list) or len(tips) == 0:
+                tips = [
+                    {"title": "구매/사용 팁", "highlight": f"{main_keyword} 핵심 포인트", "desc": "현재 SNS 상의 다양한 의견과 노하우를 종합하고 있습니다."},
+                    {"title": "연관 정보", "highlight": "유저들의 숨은 꿀팁", "desc": "실시간 반응이 모이면 더욱 구체적인 팁이 표시됩니다."}
+                ]
+            
+            # 3. 카드 무조건 렌더링
+            tips_html = ""
+            for i, t in enumerate(tips[:3]):
+                # 만약 AI가 딕셔너리 구조가 아닌 이상한 텍스트를 넣었을 경우를 대비한 방어
+                if not isinstance(t, dict):
+                    continue
                     
-                    tips_html += f"""
-                    <div style='background-color: #1a1b26; border: 1px solid #292e42; border-radius: 12px; padding: 12px; margin-bottom: 8px;'>
-                        <div style='display: flex; align-items: flex-start;'>
-                            <div style='color: #4fc3f7; font-size: 15px; font-weight: bold; width: 25px;'>{i+1}</div>
-                            <div style='flex: 1;'>
-                                <div style='color: #a9b1d6; font-size: 12px; margin-bottom: 2px;'>{t_title}</div>
-                                <div style='color: #ffffff; font-size: 14px; font-weight: bold; margin-bottom: 2px;'>{t_high}</div>
-                                <div style='color: #888888; font-size: 11px; line-height: 1.3;'>{t_desc}</div>
-                            </div>
+                t_title = t.get('title', '정보')
+                t_high = t.get('highlight', t.get('title', f'{main_keyword} 노하우'))
+                t_desc = t.get('desc', '상세 내용을 확인 중입니다.')
+                
+                tips_html += f"""
+                <div style='background-color: #1a1b26; border: 1px solid #292e42; border-radius: 12px; padding: 12px; margin-bottom: 8px;'>
+                    <div style='display: flex; align-items: flex-start;'>
+                        <div style='color: #4fc3f7; font-size: 15px; font-weight: bold; width: 25px;'>{i+1}</div>
+                        <div style='flex: 1;'>
+                            <div style='color: #a9b1d6; font-size: 12px; margin-bottom: 2px;'>{t_title}</div>
+                            <div style='color: #ffffff; font-size: 14px; font-weight: bold; margin-bottom: 2px;'>{t_high}</div>
+                            <div style='color: #888888; font-size: 11px; line-height: 1.3;'>{t_desc}</div>
                         </div>
-                    </div>"""
-                st.markdown(tips_html, unsafe_allow_html=True)
-            else:
-                st.info(f"'{main_keyword}'에 대한 분석 데이터를 구성 중입니다.")
+                    </div>
+                </div>"""
+            st.markdown(tips_html, unsafe_allow_html=True)
