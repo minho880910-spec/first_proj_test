@@ -3,14 +3,14 @@ import streamlit as st
 import requests
 from datetime import datetime, timedelta
 from .api_clients import (
-    fetch_google_real_trend, 
-    fetch_naver_search_trend, 
-    fetch_naver_autocomplete, 
+    fetch_google_real_trend,
+    fetch_naver_search_trend,
+    fetch_naver_autocomplete,
     get_naver_headers
 )
 from .ai_generators import (
-    get_google_tab_ai_data, 
-    get_naver_tab_ai_data, 
+    get_google_tab_ai_data,
+    get_naver_tab_ai_data,
     get_instagram_tab_ai_data,
     get_threads_tab_ai_data,
     get_x_tab_ai_data
@@ -109,8 +109,8 @@ def fetch_trend_data(tab_name, main_keyword, category_name=None):
             for delay in range(3, 8):
                 t_date = (datetime.now() - timedelta(days=delay)).strftime('%Y-%m-%d')
                 try:
-                    res = requests.post("https://openapi.naver.com/v1/datalab/shopping/category/keywords", 
-                                        json={"startDate": t_date, "endDate": t_date, "timeUnit": "date", "category": cid}, 
+                    res = requests.post("https://openapi.naver.com/v1/datalab/shopping/category/keywords",
+                                        json={"startDate": t_date, "endDate": t_date, "timeUnit": "date", "category": cid},
                                         headers=get_naver_headers()).json()
                     items = res.get('results', [{}])[0].get('data', [])
                     if items:
@@ -170,5 +170,6 @@ def fetch_trend_data(tab_name, main_keyword, category_name=None):
             result['realtime_keywords'] = result['top_queries'][:7]
         else:
             result['realtime_keywords'] = [f"{main_keyword} 반응", "실시간", "인기", "이슈"]
+
     st.session_state[state_key] = result
     return result, result
