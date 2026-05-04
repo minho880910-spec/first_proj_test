@@ -114,15 +114,12 @@ def get_threads_tab_ai_data(keyword):
 
 def get_x_tab_ai_data(keyword):
     """X(Twitter) 탭 전용: 실시간성 분석 및 감성/꿀팁 데이터 생성"""
-    
-    # AI가 단순히 예시를 복사하지 않고 실제 유저 반응을 분석하도록 프롬프트 강화
     prompt = f"""
     키워드 '{keyword}'에 대한 X(트위터) 실시간 반응 분석 JSON을 생성해줘.
     
     [중요 지시사항]
-    1. 'emotional_words' 배열에는 반드시 '{keyword}'와 관련된 실제 유저들의 리뷰, 감정, 장단점, 핵심 특징을 나타내는 단어를 10개 채울 것.
-    2. '좋음', '나쁨' 같은 단순한 단어보다 '노이즈캔슬링', '발열', '조리시간', '디자인' 등 검색어 특화 키워드를 우선할 것.
-    3. 예시로 제공된 형식을 그대로 복사(예: {keyword}특징1)하지 말고, 실제 분석된 단어로 교체할 것.
+    1. 'emotional_words' 배열에는 '{keyword}'의 실제 유저 반응(장단점, 특징, 감정)을 10개 채울 것.
+    2. 'tips' 배열에는 키워드가 제품이든, 생물이든, 장소든 상관없이 해당 키워드 성격에 맞는 '유저들의 꿀팁/노하우/관련 정보'를 무조건 3개 이상 생성할 것. (예: 강아지 -> 양육/훈련 팁, 장소 -> 방문 꿀팁 등)
 
     {{
       "hot_discussions": [
@@ -137,18 +134,18 @@ def get_x_tab_ai_data(keyword):
       ],
       "x_sentiment": {{
         "sentiment_stats": [60, 20, 15, 5],
-        "emotional_words": ["키워드관련단어1", "단어2", "단어3", "단어4", "단어5", "단어6", "단어7", "단어8", "단어9", "단어10"],
+        "emotional_words": ["단어1", "단어2", "단어3", "단어4", "단어5", "단어6", "단어7", "단어8", "단어9", "단어10"],
         "satisfaction_score": 85,
         "tips": [
           {{
-            "title": "실시간 유저 팁",
-            "highlight": "구매/사용 시 핵심 포인트",
-            "desc": "유저들이 입을 모아 말하는 구체적인 노하우"
+            "title": "키워드 맞춤 노하우 1",
+            "highlight": "핵심 한 줄 요약",
+            "desc": "구체적인 팁 설명"
           }},
           {{
-            "title": "연관 노하우",
-            "highlight": "놓치기 쉬운 꿀팁",
-            "desc": "제품이나 서비스를 더 효과적으로 사용하는 방법"
+            "title": "키워드 맞춤 노하우 2",
+            "highlight": "놓치기 쉬운 포인트",
+            "desc": "유저들이 자주 공유하는 정보"
           }}
         ]
       }}
@@ -157,19 +154,18 @@ def get_x_tab_ai_data(keyword):
     
     data = generate_ai_json(prompt)
     
-    # 데이터 검증 및 Fallback(기본값) 로직 - 키워드 맞춤형 기본값 생성
-    if not data or "x_sentiment" not in data or "tips" not in data.get("x_sentiment", {}):
+    # 데이터 검증: tips가 아예 비어있는 리스트([])로 올 경우까지 완벽 차단
+    if not data or "x_sentiment" not in data or not data["x_sentiment"].get("tips"):
         return {
             "hot_discussions": [],
             "x_sentiment": {
                 "sentiment_stats": [40, 30, 20, 10],
-                # 기본값도 오밀조밀한 클러스터를 위해 10개 구성
-                "emotional_words": [f"{keyword}리뷰", "성능", "디자인", "가성비", "추천", "이슈", "실사용후기", "필수템", "꿀팁", "반응"],
+                "emotional_words": [f"{keyword}리뷰", "정보", "꿀팁", "이슈", "반응", "특징", "추천", "공유", "실시간", "트렌드"],
                 "satisfaction_score": 80,
                 "tips": [
                     {
-                        "title": "데이터 분석 중", 
-                        "highlight": f"{keyword} 정보 수집 중", 
+                        "title": "데이터 분석 지연", 
+                        "highlight": f"'{keyword}' 정보 수집 중", 
                         "desc": "실시간 트렌드 데이터를 처리하고 있습니다. 잠시만 기다려주세요."
                     }
                 ]
