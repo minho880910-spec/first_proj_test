@@ -35,7 +35,12 @@ def get_google_tab_ai_data(keyword):
     }}
     """
     data = generate_ai_json(prompt)
-    return data if data else {"region_ranking": [], "faqs": [f"{keyword}의 특징은?"]}
+    if data and "region_ranking" in data and "faqs" in data:
+        return data
+    return {
+        "region_ranking": [{"region": "서울", "score": 100}], 
+        "faqs": [f"{keyword}의 주요 특징은?", f"{keyword} 관련 가장 인기 있는 정보는?"]
+    }
 
 def get_naver_tab_ai_data(keyword, category_name):
     """Naver 탭 전용: 기기/성별/연령별 인구통계 비중 생성"""
@@ -50,9 +55,18 @@ def get_naver_tab_ai_data(keyword, category_name):
     }}
     """
     data = generate_ai_json(prompt)
+    # demographics 키가 있고 그 안에 필수 하위 키들이 있는지 확인
     if data and "demographics" in data:
-        return data
-    return {"demographics": {"device": {"mo": 70, "pc": 30}, "gender": {"f": 50, "m": 50}, "age": {"30": 100}}}
+        demo = data["demographics"]
+        if all(k in demo for k in ["device", "gender", "age"]):
+            return data
+    return {
+        "demographics": {
+            "device": {"mo": 70, "pc": 30}, 
+            "gender": {"f": 50, "m": 50}, 
+            "age": {"20": 40, "30": 60}
+        }
+    }
 
 def get_instagram_tab_ai_data(keyword, category_name):
     """Instagram 탭 전용: 인기 해시태그 및 미디어/성별/연령 비중 생성"""
@@ -68,7 +82,19 @@ def get_instagram_tab_ai_data(keyword, category_name):
     }}
     """
     data = generate_ai_json(prompt)
-    return data if data else {"hashtags": [], "demographics": {}}
+    # 필수 키 존재 여부 검사
+    if data and "hashtags" in data and "demographics" in data:
+        demo = data["demographics"]
+        if all(k in demo for k in ["media_type", "gender", "age"]):
+            return data
+    return {
+        "hashtags": [], 
+        "demographics": {
+            "media_type": {"image": 40, "video": 40, "carousel": 20},
+            "gender": {"f": 50, "m": 50},
+            "age": {"20": 50, "30": 50}
+        }
+    }
 
 def get_threads_tab_ai_data(keyword):
     """Threads 탭 전용: 텍스트 중심의 대화 및 인플루언서 분석"""
@@ -76,15 +102,17 @@ def get_threads_tab_ai_data(keyword):
     키워드 '{keyword}'에 대한 Threads(스레드) 반응 분석 JSON 생성.
     {{
       "hot_discussions": [
-        {{"title": "스레드 핫토픽", "replies": 150, "quotes": 80, "handle": "@threads_user", "author": "스레더", "content": "내용"}}
+        {{"title": "핫토픽", "replies": 100, "quotes": 50, "handle": "@user", "author": "이름", "content": "내용"}}
       ],
       "top_influencers": [
-        {{"rank": 1, "handle": "@leader", "name": "오피니언리더", "mentions": 1200, "followers": "50K"}}
+        {{"rank": 1, "handle": "@id", "name": "이름", "mentions": 100, "followers": "10K"}}
       ]
     }}
     """
     data = generate_ai_json(prompt)
-    return data if data else {"hot_discussions": [], "top_influencers": []}
+    if data and "hot_discussions" in data and "top_influencers" in data:
+        return data
+    return {"hot_discussions": [], "top_influencers": []}
 
 def get_x_tab_ai_data(keyword):
     """X(Twitter) 탭 전용: 실시간성 분석 및 감성/꿀팁 데이터 생성"""
@@ -92,17 +120,27 @@ def get_x_tab_ai_data(keyword):
     키워드 '{keyword}'에 대한 X(트위터) 반응 분석 JSON 생성.
     {{
       "hot_discussions": [
-        {{"title": "현재 트렌드", "replies": 300, "quotes": 150, "handle": "@x_user", "author": "트위터리안", "content": "내용"}}
+        {{"title": "트렌드", "replies": 100, "quotes": 50, "handle": "@x_user", "author": "이름", "content": "내용"}}
       ],
       "x_sentiment": {{
-        "sentiment_stats": [65, 15, 15, 5],
-        "emotional_words": ["만족", "대박", "강추"],
-        "satisfaction_score": 88,
+        "sentiment_stats": [60, 20, 15, 5],
+        "emotional_words": ["만족", "추천"],
+        "satisfaction_score": 85,
         "tips": [
-          {{"title": "X 유저 꿀팁", "desc": "설명"}}
+          {{"title": "팁", "desc": "설명"}}
         ]
       }}
     }}
     """
     data = generate_ai_json(prompt)
-    return data if data else {"hot_discussions": [], "x_sentiment": {"sentiment_stats": [25,25,25,25], "emotional_words": [], "satisfaction_score": 50, "tips": []}}
+    if data and "hot_discussions" in data and "x_sentiment" in data:
+        return data
+    return {
+        "hot_discussions": [], 
+        "x_sentiment": {
+            "sentiment_stats": [25, 25, 25, 25], 
+            "emotional_words": [], 
+            "satisfaction_score": 50, 
+            "tips": []
+        }
+    }

@@ -60,6 +60,7 @@ def fetch_trend_data(tab_name, main_keyword, category_name=None):
         'device_ratio': None,
         'gender_ratio': None,
         'age_ratio': None,
+        'media_ratio': None, # 인스타그램 전용
         'category_ranking': [],
         'region_ranking': pd.DataFrame(),
         'faqs': [],
@@ -120,6 +121,33 @@ def fetch_trend_data(tab_name, main_keyword, category_name=None):
         
         if not found_shopping:
             result['category_ranking'] = get_fixed_category_ranking(category_name)
+
+    elif tab_name == "Instagram":
+        # 1. 인기 해시태그는 고정값에서 먼저 불러옴
+        result['category_ranking'] = get_fixed_category_ranking(category_name)
+        
+        # 2. 미디어 유형, 성별, 연령 비중 AI 추정치 호출
+        ai_res = get_instagram_tab_ai_data(main_keyword, category_name)
+        demos = ai_res.get('demographics', {})
+        
+        # 미디어 유형 비중 (이미지/동영상/슬라이드 등)
+        media = demos.get('media_type', {'image': 45, 'video': 45, 'carousel': 10})
+        result['media_ratio'] = pd.DataFrame([
+            {'type': '이미지', 'value': media.get('image', 45)},
+            {'type': '동영상(릴스)', 'value': media.get('video', 45)},
+            {'type': '슬라이드', 'value': media.get('carousel', 10)}
+        ])
+        
+        # 성별 비중
+        gen = demos.get('gender', {'f': 50, 'm': 50})
+        result['gender_ratio'] = pd.DataFrame([
+            {'gender': '여성', 'value': gen.get('f', 50)},
+            {'gender': '남성', 'value': gen.get('m', 50)}
+        ])
+        
+        # 연령별 비중
+        age = demos.get('age', {"10": 15, "20": 40, "30": 25, "40": 10, "50": 10})
+        result['age_ratio'] = pd.DataFrame([{'age': f"{k}대", 'value': v} for k, v in age.items()])
 
     elif tab_name == "Threads":
         ai_res = get_threads_tab_ai_data(main_keyword)
