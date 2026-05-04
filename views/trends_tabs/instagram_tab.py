@@ -23,7 +23,7 @@ def render(tab_name: str, categories: list, prompt_input: str, global_main_keywo
         with col1:
             # 1. 언급량 차트
             st.markdown(f"### <span style='color:#00E5FF'>{main_keyword}</span> 언급량 "
-                        f"<span style='font-size: 0.8rem; color: gray; font-weight: normal; margin-left: 10px;'>최근 1주일</span>", 
+                        f"<span style='font-size: 0.8rem; color: gray; font-weight: normal; margin-left: 10px;'>최근 1달</span>", 
                         unsafe_allow_html=True)
             df_time = main_data.get('time_series')
             if df_time is not None and not df_time.empty:
