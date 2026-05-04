@@ -1,7 +1,7 @@
 import streamlit as st
 from modules.database import add_history
 from modules.llm_engine import generate_content
-from modules.trend_analyzer import get_trend_summary
+from modules.trend_state_manager import fetch_trend_data 
 import base64
 import os
 
@@ -18,6 +18,7 @@ def render_sidebar():
         if st.session_state.get('current_view') != view:
             st.session_state.is_transitioning = True
         st.session_state.current_view = view
+        # 결과 뷰로 이동 시 프롬프트가 있으면 자동 생성 플래그 활성화
         if view == 'result' and st.session_state.get("prompt_input"):
             st.session_state.auto_generate = True
 
@@ -69,17 +70,25 @@ def render_sidebar():
             }}
             </style>
         """, unsafe_allow_html=True)
+        
         st.markdown('<div class="logo-btn-marker"></div>', unsafe_allow_html=True)
         st.button("지피지기", key="logo_btn", on_click=change_view, args=('home',))
         st.write("---")
 
+        # 카테고리 목록 (필요 시 활용)
         categories = [
             "화장품/뷰티", "IT/가전", "패션/의류", "식품/건강", 
             "인테리어/가구", "여행/숙박", "금융/재테크", "게임/엔터", 
             "교육/도서", "자동차/모빌리티", "출산/육아", "반려동물 용품", "취미/스포츠"
         ]
 
-        title = st.text_area("프롬프트 입력", placeholder="예: 신제품 립스틱 출시 홍보를 위한 인스타그램 글 작성해줘\n(자세한 타겟 고객이나 강조할 특징을 함께 적어주시면 더 좋습니다.)", height=150, key="prompt_input")
+        # 사용자 입력 영역
+        title = st.text_area(
+            "프롬프트 입력", 
+            placeholder="예: 신제품 립스틱 출시 홍보를 위한 인스타그램 글 작성해줘\n(자세한 타겟 고객이나 강조할 특징을 함께 적어주시면 더 좋습니다.)", 
+            height=150, 
+            key="prompt_input"
+        )
 
         st.write("---")
         st.markdown("### 📌 메뉴")
