@@ -81,87 +81,86 @@ def analyze_with_ai(data_bundle, api_key, platform="NAVER"):
 
 
 def render_sns_section(platform_name, keyword, api_key):
-    dummy_bundle = f"{platform_name}에서 '{keyword}' 관련 언급량 급증함."
-    with st.spinner(f"{platform_name} 분석 중..."):
-        report = analyze_with_ai(dummy_bundle, api_key, platform_name)
+    def get_full_platform_data(p_name, kw):
+        if p_name == "Instagram":
+            posts = [
+                {"content": f"요즘 {kw} 사진 찍는 재미에 빠졌어요✨ 분위기 대박! 역시 이게 대세네요. #감성샷", "tags": f"#{kw} #인스타무드 #핫플"},
+                {"content": f"드디어 다녀온 {kw} 핫플! 정보 궁금하시면 DM 주세요 💌 주말 나들이로 강추합니다.", "tags": f"#{kw} #주말데이트 #정보공유"},
+                {"content": f"나만 알고 싶은 {kw} 꿀팁 방출📌 이거 하나면 삶의 질 수직 상승합니다. 저장 필수!", "tags": f"#{kw} #꿀팁 #생활정보"},
+                {"content": f"오늘의 {kw} 룩 기록하기👗 날씨랑 너무 잘 어울리는 조합이라 기분 최고네요.", "tags": f"#{kw} #OOTD #데일리룩"},
+                {"content": f"친구랑 {kw} 챌린지 도전! 생각보다 어렵지만 너무 재밌네요 🙌 다들 참여해보세요!", "tags": f"#{kw} #챌린지 #오운완"},
+                {"content": f"주말의 마무리는 {kw}와 함께☕ 인친님들 오늘 하루 어떠셨나요? 모두 굿밤 되세요!", "tags": f"#{kw} #힐링 #카페투어"}
+            ]
+        elif p_name == "Threads":
+            posts = [
+                {"content": f"{kw}에 대해서 다들 어떻게 생각하시나요? 저는 개인적으로 이게 훨씬 낫다고 봅니다.. 🧵 여러분의 의견은?", "tags": f"#{kw} #스레드 #생각공유"},
+                {"content": f"오늘 아침 {kw} 관련해서 겪은 진짜 황당한 일 ㅋㅋㅋ 다들 이런 적 있으신가요? 너무 어이없어서 웃음만 나옴.", "tags": f"#{kw} #일상썰 #TMI"},
+                {"content": f"{kw} 입문자에게 가장 추천하는 꿀조합은 뭔가요? 고수님들 답변 기다립니다! 제발 알려주세요.", "tags": f"#{kw} #질문 #입문추천"},
+                {"content": f"아무도 안 궁금하시겠지만 저 방금 {kw} 결제했습니다. 내돈내산 솔직 후기 곧 들고 올게요. 기대해주세요!", "tags": f"#{kw} #지름신 #솔직후기"},
+                {"content": f"{kw} 열풍이 일시적일까요, 아니면 메가 트렌드가 될까요? 제 생각엔 조만간 전국을 강타할 것 같습니다.", "tags": f"#{kw} #트렌드분석 #생각정리"},
+                {"content": f"탐라에 {kw} 관련 글이 엄청 많네요. 확실히 대세는 대세인가 봅니다. 다들 이거 이야기뿐이네요.", "tags": f"#{kw} #실시간공유 #소통"}
+            ]
+        else: # X (Twitter)
+            posts = [
+                {"content": f"아니 {kw} 이거 실화냐? 탐라에 이거밖에 안 보임 ㅋㅋㅋㅋㅋ 드디어 올 것이 왔구나 가보자고~ 🚀", "tags": f"#{kw} #실시간트렌드 #가보자고"},
+                {"content": f"RT 부탁) {kw} 관련 긴급 제보 받습니다. 아시는 분 타래로 제보 부탁드려요! 공유 부탁드립니다.", "tags": f"#{kw} #정보찾아요 #RT부탁"},
+                {"content": f"오늘의 국룰: {kw} 즐기면서 트위터 하기. 이것이 바로 극락 그 자체임. 반박 시 님 말이 다 맞음.", "tags": f"#{kw} #국룰 #트위터라이프"},
+                {"content": f"세상 사람들 다 {kw} 하는데 나만 안 할 수 없지 캠페인 진행 중 (1/100). 드디어 탑승 완료!", "tags": f"#{kw} #밈 #동참 #실트"},
+                {"content": f"{kw} 때문에 통장 잔고 바닥났지만 후회는 없다. 내 행복을 샀으니 된 거야.. 사랑했다..💸", "tags": f"#{kw} #금융치료 #덕질자금"},
+                {"content": f"{kw} 관련해서 진짜 쩌는 썰 하나 알려드림. 일단 타래로 길게 이어집니다 👇 (타래 필독!!)", "tags": f"#{kw} #꿀팁 #썰 #타래"}
+            ]
+        return posts
+
+    all_posts = get_full_platform_data(platform_name, keyword)
+
+    data_for_ai = f"""
+    플랫폼: {platform_name}
+    검색 키워드: {keyword}
+    게시글 리스트:
+    1. {all_posts[0]['content']}
+    2. {all_posts[1]['content']}
+    3. {all_posts[2]['content']}
+    4. {all_posts[3]['content']}
+    5. {all_posts[4]['content']}
+    6. {all_posts[5]['content']}
+    
+    위 6개의 게시글을 분석하여 현재 이 플랫폼에서 나타나는 {keyword} 관련 종합적인 '최신 트렌드' 3가지를 요약하고, 
+    연관된 핵심 키워드 6개를 뽑아주세요. 게시글 문장을 그대로 복사하지 말고 통찰력 있게 분석하세요.
+    """
+
+    with st.spinner(f"✨ {platform_name} 트렌드 분석 중..."):
+        report = analyze_with_ai(data_for_ai, api_key, platform_name)
         clean_report = report.replace('```html', '').replace('```', '').strip()
         st.markdown(clean_report, unsafe_allow_html=True)
     
     st.write("") 
 
-    def get_platform_dummies(p_name, kw, idx):
-        if p_name == "Instagram":
-            contents = [
-                f"요즘 {kw} 사진 찍는 재미에 빠졌어요✨ 분위기 대박! 역시 이게 대세네요.",
-                f"드디어 다녀온 {kw} 핫플! 정보 궁금하시면 DM 주세요 💌 주말 나들이 추천!",
-                f"나만 알고 싶은 {kw} 꿀팁 방출📌 이거 하나면 삶의 질 수직 상승. 저장 필수!",
-                f"오늘의 {kw} 룩 기록하기👗 날씨랑 너무 잘 어울리는 조합이라 기분 좋네요.",
-                f"친구랑 {kw} 챌린지 도전! 생각보다 어렵지만 재밌네요 🙌 같이 해요!",
-                f"주말의 마무리는 {kw}와 함께☕ 인친님들 오늘 하루 어떠셨나요? 굿밤!"
-            ]
-            tags = [
-                f"#{kw} #갬성 #daily #인스타무드", f"#{kw} #핫플 #주말데이트 #맛집탐방",
-                f"#{kw} #꿀팁 #정보공유 #살림꿀팁", f"#{kw} #OOTD #데일리룩 #감성코디",
-                f"#{kw} #챌린지 #운동하는여자 #취미", f"#{kw} #힐링 #카페투어 #소통해요"
-            ]
-        elif p_name == "Threads":
-            contents = [
-                f"{kw}에 대해서 다들 어떻게 생각하시나요? 저는 솔직히 이게 더 낫다고 봅니다.. 🧵",
-                f"오늘 아침 {kw} 관련해서 겪은 황당한 일 ㅋㅋㅋ 다들 이런 적 있으신가요?",
-                f"{kw} 입문자에게 가장 추천하는 조합은 뭔가요? 답변 기다립니다!",
-                f"아무도 안 궁금하시겠지만 저 방금 {kw} 결제했습니다. 후기 커밍순.",
-                f"{kw} 열풍이 일시적일까요, 아니면 메가 트렌드가 될까요? 제 생각은..",
-                f"탐라에 {kw} 관련 글이 많네요. 역시 대세는 대세인가 봅니다."
-            ]
-            tags = [
-                f"#{kw} #스레드 #생각공유 #토론", f"#{kw} #TMI #데일리 #일상썰",
-                f"#{kw} #질문 #답변환영 #입문추천", f"#{kw} #내돈내산 #솔직후기 #지름신",
-                f"#{kw} #트렌드분석 #메가트렌드 #생각정리", f"#{kw} #실시간공유 #트렌드파악 #소통"
-            ]
-        else: # X (Twitter)
-            contents = [
-                f"아니 {kw} 이거 실화냐? 탐라에 이거밖에 안 보임 ㅋㅋㅋㅋ 가보자고~ 🚀",
-                f"RT 부탁) {kw} 관련 긴급 제보 받습니다. 아시는 분 타래로 제보 부탁드려요!",
-                f"오늘의 국룰: {kw} 즐기면서 트위터 하기. 극락 그 자체임. 반박 불가.",
-                f"세상 사람들 다 {kw} 하는데 나만 안 할 수 없지 캠페인 진행 중 (1/100)",
-                f"{kw} 때문에 통장 잔고 바닥났지만 후회는 없다. 사랑했다..💸",
-                f"{kw} 관련 쩌는 썰 하나 알려줌. 일단 타래로 이어짐 👇"
-            ]
-            tags = [
-                f"#{kw} #실시간트렌드 #국룰 #가보자고", f"#{kw} #정보찾아요 #RT부탁 #제보",
-                f"#{kw} #덕질 #극락 #트위터라이프", f"#{kw} #밈 #동참 #실트",
-                f"#{kw} #금융치료 #사랑했다 #덕질자금", f"#{kw} #꿀팁 #썰 #타래필독"
-            ]
-        return contents[idx], tags[idx]
-
     cols = st.columns(3)
-    for i in range(6):
-        content, tag = get_platform_dummies(platform_name, keyword, i)
+    for i, post in enumerate(all_posts):
         user_id = f"{platform_name.lower()}_user_{i+101}"
         with cols[i % 3]:
             st.markdown(f"""
             <div style="
                 border: 1px solid #e1e4e8; padding: 15px; border-radius: 12px; 
-                margin-bottom: 8px; background-color: white; min-height: 150px;
+                margin-bottom: 8px; background-color: white; min-height: 180px;
                 display: flex; flex-direction: column; justify-content: space-between;
                 box-shadow: 1px 1px 3px rgba(0,0,0,0.02);">
                 <div>
-                    <p style="font-size: 0.75rem; color: #888; font-weight: bold; margin-bottom: 5px;">@{user_id}</p>
-                    <p style="font-size: 0.85rem; font-weight: 500; line-height:1.4; color: #222; margin-bottom: 5px;">{content}</p>
+                    <p style="font-size: 0.75rem; color: #888; font-weight: bold; margin-bottom: 8px;">@{user_id}</p>
+                    <p style="font-size: 0.88rem; font-weight: 500; line-height:1.5; color: #222; margin-bottom: 8px;">
+                        {post['content']}
+                    </p>
                 </div>
-                <p style="color: #0366d6; font-size: 0.75rem; margin: 0;">{tag}</p>
+                <p style="color: #0366d6; font-size: 0.78rem; font-weight: 600; margin: 0;">{post['tags']}</p>
             </div>
             """, unsafe_allow_html=True)
-
 
 def render_popular():
     st.header("🔥 인기 포스팅")
     
-    # openai_key = os.getenv("OPENAI_API_KEY")
     openai_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
-    c_id, c_secret = st.secrets.get("NAVER_CLIENT_ID") or os.getenv("NAVER_CLIENT_ID"), st.secrets.get("OPENAINAVER_CLIENT_SECRET") or os.getenv("NAVER_CLIENT_SECRET")
+    c_id, c_secret = st.secrets.get("NAVER_CLIENT_ID") or os.getenv("NAVER_CLIENT_ID"), st.secrets.get("NAVER_CLIENT_SECRET") or os.getenv("NAVER_CLIENT_SECRET")
 
-    
     prompt_input = st.session_state.get("prompt_input", "").strip()
     if not prompt_input:
         st.info("💡 프롬프트를 입력하면 분석이 시작됩니다.")
@@ -174,11 +173,11 @@ def render_popular():
     
     search_query = st.session_state.get("extracted_keyword", "")
 
-    tab_naver, tab_insta, tab_threads, tab_x = st.tabs(["NAVER", "Instagram", "Threads", "X (Twitter)"])
+    tab_naver, tab_insta, tab_threads, tab_x = st.tabs(["Naver", "Instagram", "Threads", "X (Twitter)"])
 
     with tab_naver:
         if search_query and st.session_state.get("last_query") != search_query:
-            with st.spinner(f"🔍 NAVER 분석 중..."):
+            with st.spinner(f"🔍 Naver 분석 중..."):
                 items = get_naver_popular_posts(search_query, c_id, c_secret)
                 if items:
                     analysis_data = ""
