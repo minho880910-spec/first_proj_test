@@ -107,21 +107,24 @@ def render(tab_name: str, prompt_input: str, global_main_keyword: str):
                 <div style='text-align: center; color: #00E5FF; font-weight: bold; font-size: 14px; margin-top: 5px;'>{s_score}점</div>"""
                 st.markdown(gauge_html, unsafe_allow_html=True)
 
-        # --- [하단 오른쪽] 베스트 꿀팁 섹션 부분 수정 ---
+        # --- [하단 오른쪽] 베스트 꿀팁 섹션 전체 수정 ---
         with tips_container:
             st.markdown("<div style='text-align: right; font-size: 11px; color: #888888; margin-bottom: 5px;'><span>🔖 실시간 유저 노하우</span></div>", unsafe_allow_html=True)
             
-            # x_sentiment 내의 tips 리스트를 안전하게 추출
+            # 1. x_ai에서 tips 데이터를 가져오되, 없을 경우 빈 리스트 반환
             tips = x_ai.get('tips', [])
-    
-            if tips:
+            
+            # 2. 만약 AI가 키 이름을 user_tips 등으로 바꿨을 경우를 대비한 2차 확인
+            if not tips:
+                tips = x_ai.get('user_tips', x_ai.get('knowhow', []))
+            
+            if tips and isinstance(tips, list):
                 tips_html = ""
-                for i, t in enumerate(tips[:3]): # 최대 3개 노출
-                    # 키값이 달라도 출력되도록 안전하게 매핑
-                    t_title = t.get('title', '실시간 정보')
-                    # highlight가 없으면 title을, 그것도 없으면 기본 문구 사용
-                    t_high = t.get('highlight', t.get('title', '핵심 노하우'))
-                    t_desc = t.get('desc', '상세 내용을 확인 중입니다.')
+                for i, t in enumerate(tips[:3]):
+                    # 3. 개별 팁 내부의 키값도 안전하게 참조 (필드가 누락되어도 출력되게 함)
+                    t_title = t.get('title', '실시간 노하우')
+                    t_high = t.get('highlight', t.get('title', '핵심 포인트'))
+                    t_desc = t.get('desc', '상세 내용을 분석 중입니다.')
                     
                     tips_html += f"""
                     <div style='background-color: #1a1b26; border: 1px solid #292e42; border-radius: 12px; padding: 12px; margin-bottom: 8px;'>
@@ -136,4 +139,5 @@ def render(tab_name: str, prompt_input: str, global_main_keyword: str):
                     </div>"""
                 st.markdown(tips_html, unsafe_allow_html=True)
             else:
-                st.info("실시간 꿀팁 데이터를 분석 중입니다.")
+                # 데이터가 아예 없을 경우에만 info 표시
+                st.info(f"'{main_keyword}'에 대한 새로운 노하우를 분석 중입니다.")

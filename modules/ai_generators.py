@@ -116,40 +116,34 @@ def get_x_tab_ai_data(keyword):
     """X(Twitter) 탭 전용: 실시간성 분석 및 감성/꿀팁 데이터 생성"""
     prompt = f"""
     키워드 '{keyword}'에 대한 X(트위터) 반응 분석 JSON을 생성해줘.
-    반드시 다음 모든 키를 포함할 것:
+    반드시 다음 구조를 엄격히 지킬 것:
     {{
-      "hot_discussions": [
-        {{"title": "트렌드", "replies": 100, "quotes": 50, "handle": "@x_user", "author": "이름", "content": "내용"}}
-      ],
+      "hot_discussions": [],
       "x_sentiment": {{
         "sentiment_stats": [60, 20, 15, 5],
-        "emotional_words": ["만족", "추천", "필수", "대박"],
+        "emotional_words": ["만족", "추천", "필수"],
         "satisfaction_score": 85,
         "tips": [
           {{
-            "title": "실시간 유저 팁",
-            "highlight": "가장 중요한 핵심 노하우",
-            "desc": "팁에 대한 상세 설명 문구"
-          }},
-          {{
-            "title": "연관 정보",
-            "highlight": "놓치면 안 되는 포인트",
-            "desc": "상세 가이드 내용"
+            "title": "팁 제목",
+            "highlight": "핵심 요약",
+            "desc": "상세 설명"
           }}
         ]
       }}
     }}
     """
     data = generate_ai_json(prompt)
-    if data and "x_sentiment" in data:
-        return data
-    # 데이터 생성 실패 시 기본값 보장
-    return {
-        "hot_discussions": [],
-        "x_sentiment": {
-            "sentiment_stats": [25, 25, 25, 25],
-            "emotional_words": [],
-            "satisfaction_score": 50,
-            "tips": [{"title": "분석 중", "highlight": "데이터를 불러오는 중입니다", "desc": "잠시만 기다려주세요."}]
+    
+    # 데이터 검증 및 Fallback(기본값) 강화
+    if not data or "x_sentiment" not in data:
+        return {
+            "hot_discussions": [],
+            "x_sentiment": {
+                "sentiment_stats": [25, 25, 25, 25],
+                "emotional_words": ["분석중"],
+                "satisfaction_score": 50,
+                "tips": [{"title": "정보", "highlight": f"{keyword} 팁 확인 중", "desc": "잠시 후 다시 시도해주세요."}]
+            }
         }
-    }
+    return data
