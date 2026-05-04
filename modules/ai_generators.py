@@ -121,13 +121,18 @@ def get_x_tab_ai_data(keyword):
       "hot_discussions": [],
       "x_sentiment": {{
         "sentiment_stats": [60, 20, 15, 5],
-        "emotional_words": ["만족", "추천", "필수"],
+        "emotional_words": ["추천", "가성비", "디자인", "필수"],
         "satisfaction_score": 85,
         "tips": [
           {{
-            "title": "팁 제목",
-            "highlight": "핵심 요약",
-            "desc": "상세 설명"
+            "title": "실시간 유저 팁",
+            "highlight": "구매 전 체크 포인트",
+            "desc": "설치 공간의 깊이와 문 열림 각도를 반드시 확인하세요."
+          }},
+          {{
+            "title": "관리 노하우",
+            "highlight": "에너지 절약 꿀팁",
+            "desc": "냉장실은 70%만 채우고 냉동실은 가득 채우는 게 효율적입니다."
           }}
         ]
       }}
@@ -135,7 +140,7 @@ def get_x_tab_ai_data(keyword):
     """
     data = generate_ai_json(prompt)
     
-    # 데이터 검증 및 Fallback(기본값) 강화
+    # 데이터 검증 및 Fallback 강화
     if not data or "x_sentiment" not in data:
         return {
             "hot_discussions": [],
@@ -143,7 +148,10 @@ def get_x_tab_ai_data(keyword):
                 "sentiment_stats": [25, 25, 25, 25],
                 "emotional_words": ["분석중"],
                 "satisfaction_score": 50,
-                "tips": [{"title": "정보", "highlight": f"{keyword} 팁 확인 중", "desc": "잠시 후 다시 시도해주세요."}]
+                "tips": [
+                    {"title": "정보", "highlight": f"{keyword} 구매 팁", "desc": "에너지 소비 효율 등급을 꼭 확인하세요."},
+                    {"title": "관리", "highlight": f"{keyword} 청소 팁", "desc": "베이킹소다를 활용해 내부 냄새를 제거해보세요."}
+                ]
             }
         }
     return data
