@@ -45,31 +45,60 @@ def get_fixed_category_ranking(category_name):
     return fixed_data.get(category_name, [])
 
 def generate_ai_estimates(keyword, category):
-    """실데이터 부재 시 AI를 통해 논리적 예측 수치 생성 (UI 문구 미포함)"""
+    """Naver 탭용 비중 예측 생성"""
     prompt = f"""
-    키워드 '{keyword}'와 카테고리 '{category}'의 한국 트렌드를 분석해서 
-    가장 개연성 있는 통계 데이터를 JSON으로 작성해줘. 
-    15, 15, 15와 같은 고정값은 절대 사용하지 말고, 키워드 타겟층에 맞춰 비중을 조절해.
-    예: '단팥빵'이라면 중장년층(40-50대) 비중을 높게 설정.
-    
+    키워드 '{keyword}'와 카테고리 '{category}'의 한국 트렌드를 분석해서 JSON으로 작성해줘. 
     형식:
     {{
         "device": {{"mo": 70, "pc": 30}},
         "gender": {{"f": 55, "m": 45}},
         "age": {{"10": 5, "20": 20, "30": 25, "40": 25, "50": 15, "60": 10}}
     }}
-    * 모든 비중의 합은 100이어야 함.
     """
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "system", "content": "너는 한국 소비자 시장 데이터 분석가야."},
+            messages=[{"role": "system", "content": "너는 한국 소비자 시장 분석가야."},
                       {"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
         return json.loads(response.choices[0].message.content)
-    except:
-        return None
+    except: return None
+
+def generate_google_ai_estimates(keyword):
+    """Google 탭용 지역 랭킹 및 FAQ 생성"""
+    prompt = f"""
+    키워드 '{keyword}'에 대한 한국 내 검색 트렌드를 분석해서 JSON으로 줘.
+    1. region_ranking: 관심도가 높은 한국 도시 5곳과 점수(0~100)
+    2. faqs: 사람들이 구글에서 이 키워드와 관련해 자주 묻는 질문 5개
+    
+    형식:
+    {{
+        "region_ranking": [
+            {{"region": "서울", "score": 95}},
+            {{"region": "경기", "score": 88}},
+            {{"region": "부산", "score": 75}},
+            {{"region": "인천", "score": 60}},
+            {{"region": "대구", "score": 50}}
+        ],
+        "faqs": [
+            "질문 내용 1?",
+            "질문 내용 2?",
+            "질문 내용 3?",
+            "질문 내용 4?",
+            "질문 내용 5?"
+        ]
+    }}
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "system", "content": "너는 트렌드 분석 전문가야."},
+                      {"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        return json.loads(response.choices[0].message.content)
+    except: return None
 
 def get_naver_related_keywords(keyword):
     import urllib.parse
@@ -84,15 +113,17 @@ def get_naver_related_keywords(keyword):
     return []
 
 def fetch_naver_all_data(keyword, category_id, category_name):
-    # 1. 공통 데이터 초기화
     related = get_naver_related_keywords(keyword)
     end_date = (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=32)).strftime('%Y-%m-%d')
     
-    result = {'time_series': pd.DataFrame(), 'top_queries': related, 
-              'device_ratio': None, 'gender_ratio': None, 'age_ratio': None, 'category_ranking': []}
+    result = {
+        'time_series': pd.DataFrame(), 'top_queries': related, 
+        'device_ratio': None, 'gender_ratio': None, 'age_ratio': None, 
+        'category_ranking': [], 'region_ranking': pd.DataFrame(), 'faqs': []
+    }
 
-    # 2. 검색 추이(시계열) 데이터 로드
+    # 1. 시계열 데이터
     try:
         search_body = {"startDate": start_date, "endDate": end_date, "timeUnit": "date", 
                        "keywordGroups": [{"groupName": keyword, "keywords": [keyword]}]}
@@ -101,7 +132,7 @@ def fetch_naver_all_data(keyword, category_id, category_name):
         result['time_series'] = pd.DataFrame(res_search['results'][0]['data']).rename(columns={'period': 'date', 'ratio': 'clicks'})
     except: pass
 
-    # 3. 실시간 쇼핑 데이터 탐색 (3~10일 전 범위)
+    # 2. 쇼핑 데이터 탐색
     found_real = False
     if category_id:
         for delay in range(3, 11):
@@ -113,7 +144,6 @@ def fetch_naver_all_data(keyword, category_id, category_name):
                 items = r_res.get('results', [{}])[0].get('data', [])
                 if items:
                     result['category_ranking'] = [i.get('name') for i in items][:10]
-                    # 실데이터가 있으면 통계 정보도 로드
                     for ep in ["device", "gender", "age"]:
                         s_res = requests.post(f"https://openapi.naver.com/v1/datalab/shopping/category/{ep}", 
                                               json=common_body, headers=get_naver_headers()).json()
@@ -127,25 +157,20 @@ def fetch_naver_all_data(keyword, category_id, category_name):
                     break
             except: continue
 
-    # 4. 실데이터 부재 시 처리 (AI 예측 수치 + 사용자 고정 랭킹)
+    # 3. Naver 보완 (실데이터 없을 시 AI 수치 + 고정 랭킹)
     if not found_real or result['device_ratio'] is None:
-        # (1) 랭킹은 사용자님이 지정하신 고정 리스트 사용
         result['category_ranking'] = get_fixed_category_ranking(category_name)
-        
-        # (2) 기기/성별/연령 비중은 AI가 논리적으로 생성
         ai_data = generate_ai_estimates(keyword, category_name)
         if ai_data:
-            result['device_ratio'] = pd.DataFrame([
-                {'device': '모바일', 'value': ai_data['device']['mo']},
-                {'device': 'PC', 'value': ai_data['device']['pc']}
-            ])
-            result['gender_ratio'] = pd.DataFrame([
-                {'gender': '여성', 'value': ai_data['gender']['f']},
-                {'gender': '남성', 'value': ai_data['gender']['m']}
-            ])
-            result['age_ratio'] = pd.DataFrame([
-                {'age': f"{k}대", 'value': v} for k, v in ai_data['age'].items()
-            ])
+            result['device_ratio'] = pd.DataFrame([{'device': '모바일', 'value': ai_data['device']['mo']}, {'device': 'PC', 'value': ai_data['device']['pc']}])
+            result['gender_ratio'] = pd.DataFrame([{'gender': '여성', 'value': ai_data['gender']['f']}, {'gender': '남성', 'value': ai_data['gender']['m']}])
+            result['age_ratio'] = pd.DataFrame([{'age': f"{k}대", 'value': v} for k, v in ai_data['age'].items()])
+
+    # 4. Google 보완 (지역 랭킹 및 FAQ 생성)
+    ai_google = generate_google_ai_estimates(keyword)
+    if ai_google:
+        result['region_ranking'] = pd.DataFrame(ai_google['region_ranking'])
+        result['faqs'] = ai_google['faqs']
     
     return result
 
