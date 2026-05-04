@@ -54,6 +54,22 @@ def get_naver_tab_ai_data(keyword, category_name):
         return data
     return {"demographics": {"device": {"mo": 70, "pc": 30}, "gender": {"f": 50, "m": 50}, "age": {"30": 100}}}
 
+def get_instagram_tab_ai_data(keyword, category_name):
+    """Instagram 탭 전용: 인기 해시태그 및 미디어/성별/연령 비중 생성"""
+    prompt = f"""
+    키워드 '{keyword}'와 인스타그램 카테고리 '{category_name}' 분석 JSON 생성.
+    {{
+      "hashtags": ["태그1", "태그2", "태그3", "태그4", "태그5"],
+      "demographics": {{
+        "media_type": {{"image": 40, "video": 50, "carousel": 10}},
+        "gender": {{"f": 60, "m": 40}},
+        "age": {{"10": 15, "20": 35, "30": 25, "40": 15, "50": 10}}
+      }}
+    }}
+    """
+    data = generate_ai_json(prompt)
+    return data if data else {"hashtags": [], "demographics": {}}
+
 def get_threads_tab_ai_data(keyword):
     """Threads 탭 전용: 텍스트 중심의 대화 및 인플루언서 분석"""
     prompt = f"""

@@ -11,6 +11,7 @@ from .api_clients import (
 from .ai_generators import (
     get_google_tab_ai_data, 
     get_naver_tab_ai_data, 
+    get_instagram_tab_ai_data,
     get_threads_tab_ai_data,
     get_x_tab_ai_data
 )
