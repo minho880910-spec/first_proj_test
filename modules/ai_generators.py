@@ -114,93 +114,34 @@ def get_threads_tab_ai_data(keyword):
 
 def get_x_tab_ai_data(keyword):
     """X(Twitter) 탭 전용: 실시간성 분석 및 감성/꿀팁 데이터 생성"""
-
     prompt = f"""
-    당신은 X(트위터) 트렌드 분석가입니다.
+    당신은 X(트위터) 트렌드 분석가입니다. 키워드 '{keyword}'에 대해 분석한 결과물만 JSON으로 응답하세요.
+    
+    1. 'hot_discussions': 현재 X에서 화제가 되는 '{keyword}' 관련 대화 주제 3개
+    2. 'emotional_words': 유저들의 실제 반응(형용사/명사) 10개
+    3. 'sentiment_stats': 긍정, 중립, 부정, 기타 비율 (합계 100이 되는 숫자 리스트)
+    4. 'tips': 유저들에게 도움이 되는 실질적인 팁 3개
 
-    반드시 아래 JSON 형식으로만 응답하세요.
-    절대 다른 텍스트 포함 금지.
-
+    JSON 응답 형식:
     {{
-      "hot_discussions": [],
+      "hot_discussions": ["주제1", "주제2", "주제3"],
       "x_sentiment": {{
         "sentiment_stats": [65, 20, 10, 5],
-        "emotional_words": ["긍정", "부정"],
+        "emotional_words": ["단어1", "단어2", "단어3", "단어4", "단어5", "단어6", "단어7", "단어8", "단어9", "단어10"],
         "satisfaction_score": 85,
         "tips": [
-          {{ "title": "제목", "highlight": "핵심", "desc": "설명" }},
-          {{ "title": "제목", "highlight": "핵심", "desc": "설명" }},
-          {{ "title": "제목", "highlight": "핵심", "desc": "설명" }}
+          {{ "title": "팁1 제목", "highlight": "강조문구", "desc": "상세설명" }},
+          {{ "title": "팁2 제목", "highlight": "강조문구", "desc": "상세설명" }},
+          {{ "title": "팁3 제목", "highlight": "강조문구", "desc": "상세설명" }}
         ]
       }}
     }}
-
-    조건:
-    - emotional_words: '{keyword}' 관련 실제 표현 10개
-    - tips: 반드시 3개 생성
     """
-
+    
     data = generate_ai_json(prompt)
-
-    # ----------------------------------
-    # 1. 전체 구조 강제 생성 (🔥 핵심)
-    # ----------------------------------
+    
+    # 데이터 누락 방지를 위한 최소한의 가드 로직
     if not data or not isinstance(data, dict):
-        data = {}
-
-    if "x_sentiment" not in data:
-        data["x_sentiment"] = {}
-
-    x_ai = data["x_sentiment"]
-
-    # ----------------------------------
-    # 2. sentiment_stats 보정
-    # ----------------------------------
-    if not isinstance(x_ai.get("sentiment_stats"), list):
-        x_ai["sentiment_stats"] = [65, 20, 10, 5]
-
-    # ----------------------------------
-    # 3. emotional_words 강제 생성
-    # ----------------------------------
-    bad_words = ["단어1", "단어2", "단어3"]
-
-    e_words = x_ai.get("emotional_words")
-
-    if not e_words or not isinstance(e_words, list) or any(w in bad_words for w in e_words):
-        x_ai["emotional_words"] = [
-            f"{keyword}후기", f"{keyword}추천", f"{keyword}꿀팁",
-            f"{keyword}논란", f"{keyword}반응",
-            "실시간", "트렌드", "인기", "이슈", "공유"
-        ]
-
-    # ----------------------------------
-    # 4. satisfaction_score 보정
-    # ----------------------------------
-    if not isinstance(x_ai.get("satisfaction_score"), (int, float)):
-        x_ai["satisfaction_score"] = 80
-
-    # ----------------------------------
-    # 5. tips 무조건 3개 보장 (🔥 핵심)
-    # ----------------------------------
-    tips = x_ai.get("tips")
-
-    if not tips or not isinstance(tips, list) or len(tips) < 3:
-        x_ai["tips"] = [
-            {
-                "title": f"{keyword} 활용법",
-                "highlight": f"{keyword} 빠르게 이해",
-                "desc": f"{keyword} 관련 정보는 실시간 반응을 먼저 확인하세요."
-            },
-            {
-                "title": f"{keyword} 체크포인트",
-                "highlight": f"{keyword} 핵심 포인트",
-                "desc": f"리뷰와 트렌드 키워드를 함께 보면 정확도가 올라갑니다."
-            },
-            {
-                "title": f"{keyword} 꿀팁",
-                "highlight": f"{keyword} 활용 전략",
-                "desc": f"이슈 타이밍에 맞춰 검색하면 효과가 좋습니다."
-            }
-        ]
-
+        data = {"hot_discussions": [], "x_sentiment": {}}
+        
     return data

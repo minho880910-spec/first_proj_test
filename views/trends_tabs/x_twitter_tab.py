@@ -1,190 +1,118 @@
 import streamlit as st
 import altair as alt
 import pandas as pd
-from modules.trend_state_manager import fetch_trend_data
+from .trend_state_manager import fetch_trend_data
 
-
-# --------------------------------------
-# 🔥 데이터 강제 보정 함수 (핵심)
-# --------------------------------------
 def normalize_x_data(main_data, keyword):
-    if not main_data or not isinstance(main_data, dict):
-        main_data = {}
-
-    # x_sentiment 구조 확보
+    """데이터가 없거나 구조가 깨졌을 때를 대비한 최종 방어선"""
+    if not main_data: main_data = {}
+    
+    # 1. x_sentiment 추출 및 보정
     x_ai = main_data.get("x_sentiment", {})
+    if not isinstance(x_ai, dict): x_ai = {}
 
-    if not isinstance(x_ai, dict):
-        x_ai = {}
-
-    # sentiment_stats
-    if not isinstance(x_ai.get("sentiment_stats"), list):
+    # 감성 수치 보정
+    if not x_ai.get("sentiment_stats"):
         x_ai["sentiment_stats"] = [65, 20, 10, 5]
-
-    # emotional_words
+    
+    # 감성 단어 보정
     if not x_ai.get("emotional_words"):
-        x_ai["emotional_words"] = [
-            f"{keyword}후기", f"{keyword}추천", f"{keyword}꿀팁",
-            f"{keyword}논란", f"{keyword}반응",
-            "실시간", "트렌드", "인기", "이슈", "공유"
-        ]
+        x_ai["emotional_words"] = [f"{keyword} 반응", "실시간", "인기", "이슈", "추천"]
 
-    # satisfaction_score
-    if not isinstance(x_ai.get("satisfaction_score"), (int, float)):
+    # 만족도 점수 보정
+    if "satisfaction_score" not in x_ai:
         x_ai["satisfaction_score"] = 80
 
-    # tips (무조건 3개)
-    tips = x_ai.get("tips")
-    if not tips or not isinstance(tips, list) or len(tips) < 3:
+    # 꿀팁 보정 (리스트가 비었거나 개수가 모자랄 때)
+    tips = x_ai.get("tips", [])
+    if not isinstance(tips, list) or len(tips) < 1:
         x_ai["tips"] = [
-            {
-                "title": f"{keyword} 활용법",
-                "highlight": f"{keyword} 빠르게 이해",
-                "desc": f"{keyword} 관련 정보는 실시간 반응을 먼저 확인하세요."
-            },
-            {
-                "title": f"{keyword} 체크포인트",
-                "highlight": f"{keyword} 핵심 포인트",
-                "desc": f"리뷰와 트렌드를 함께 보면 정확도가 올라갑니다."
-            },
-            {
-                "title": f"{keyword} 꿀팁",
-                "highlight": f"{keyword} 활용 전략",
-                "desc": f"이슈 타이밍에 맞춰 검색하면 효과가 좋습니다."
-            }
-        ]
-
-    # 다시 넣기
+            {"title": f"{keyword} 정보", "highlight": "실시간 분석 중", "desc": "현재 데이터를 분석하고 있습니다."}
+        ] * 3
+    
     main_data["x_sentiment"] = x_ai
-
     return main_data
 
-
-# --------------------------------------
-# 🔥 메인 렌더 함수
-# --------------------------------------
 def render(tab_name: str, prompt_input: str, global_main_keyword: str):
     keyword = global_main_keyword
 
-    # --------------------------------------
-    # 1. 데이터 가져오기
-    # --------------------------------------
+    # 1. 데이터 가져오기 및 보정
     try:
         main_data, _ = fetch_trend_data(tab_name, keyword)
     except Exception as e:
-        st.error(f"데이터 로딩 실패: {e}")
+        st.error(f"데이터 로드 에러: {e}")
         main_data = {}
 
-    # 🔥 무조건 데이터 보정
     main_data = normalize_x_data(main_data, keyword)
-
-    # 🔥 디버깅 (필요하면 켜라)
-    # st.write("DEBUG:", main_data)
-
     x_ai = main_data["x_sentiment"]
 
-    # --------------------------------------
-    # 2. 레이아웃
-    # --------------------------------------
+    # 2. 레이아웃 구성
     left_col, right_col = st.columns([2, 1], gap="large")
 
-    # ======================================
-    # 🔵 LEFT
-    # ======================================
     with left_col:
-
-        st.markdown(f"### <span style='color:#4fc3f7'>{keyword}</span> 트렌드 추이", unsafe_allow_html=True)
-
+        st.markdown(f"### <span style='color:#4fc3f7'>{keyword}</span> 트렌드 분석", unsafe_allow_html=True)
+        
+        # [시계열 차트]
         df_time = main_data.get("time_series")
-
         if isinstance(df_time, pd.DataFrame) and not df_time.empty:
             chart = alt.Chart(df_time).mark_area(
                 line={'color': '#00E5FF'},
                 color=alt.Gradient(
                     gradient='linear',
-                    stops=[
-                        alt.GradientStop(color='#00E5FF', offset=0),
-                        alt.GradientStop(color='transparent', offset=1)
-                    ],
+                    stops=[alt.GradientStop(color='#00E5FF', offset=0), alt.GradientStop(color='transparent', offset=1)],
                     x1=1, x2=1, y1=1, y2=0
                 )
-            ).encode(
-                x=alt.X('date:T'),
-                y=alt.Y('clicks:Q')
-            ).properties(height=300)
-
+            ).encode(x='date:T', y='clicks:Q').properties(height=250)
             st.altair_chart(chart, use_container_width=True)
         else:
-            st.caption("트렌드 데이터 없음")
+            st.info("실시간 트렌드 추이 데이터를 불러오는 중입니다.")
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # --------------------------------------
-        # 감성 분석
-        # --------------------------------------
-        st.markdown("#### 정보 공유 및 감성 분석 지도")
-
-        s_stats = x_ai["sentiment_stats"]
-        e_words = x_ai["emotional_words"]
-        s_score = x_ai["satisfaction_score"]
-
+        # [감성 분석 섹션]
+        st.markdown("#### 실시간 감성 지표")
         sc1, sc2, sc3 = st.columns([1, 1.8, 1])
-
-        # -----------------------
-        # 성향
-        # -----------------------
+        
         with sc1:
             st.markdown("##### 게시물 성향")
-
+            s_stats = x_ai["sentiment_stats"]
             st.markdown(f"""
-            <div style='width:100px;height:100px;margin:auto;border-radius:50%;
-            background:conic-gradient(#00E5FF 0% {s_stats[0]}%, #FF00FF {s_stats[0]}% 85%, #448aff 85% 100%);
-            display:flex;align-items:center;justify-content:center;'>
-
-            <div style='width:70px;height:70px;background:#1a1b26;border-radius:50%;
-            display:flex;align-items:center;justify-content:center;color:#00E5FF;font-weight:bold;'>
-
-            {s_stats[0]}%
-            </div></div>
+                <div style='width:100px;height:100px;margin:auto;border-radius:50%;
+                background:conic-gradient(#00E5FF 0% {s_stats[0]}%, #FF00FF {s_stats[0]}% 85%, #448aff 85% 100%);
+                display:flex;align-items:center;justify-content:center;'>
+                <div style='width:70px;height:70px;background:#1a1b26;border-radius:50%;
+                display:flex;align-items:center;justify-content:center;color:#00E5FF;font-weight:bold;'>
+                {s_stats[0]}%</div></div>
             """, unsafe_allow_html=True)
 
-        # -----------------------
-        # 감성 클러스터
-        # -----------------------
         with sc2:
-            st.markdown("##### 감성 클러스터")
-
+            st.markdown("##### 감성 키워드")
+            e_words = x_ai["emotional_words"]
             bubble_html = "<div style='display:flex;flex-wrap:wrap;gap:6px;justify-content:center;'>"
-
             colors = ["#FF00FF", "#00E5FF", "#448aff", "#a9b1d6"]
-
             for i, word in enumerate(e_words[:10]):
                 c = colors[i % 4]
                 bubble_html += f"<span style='color:{c};border:1px solid {c};padding:4px 8px;border-radius:12px;font-size:12px'>{word}</span>"
-
             bubble_html += "</div>"
-
             st.markdown(bubble_html, unsafe_allow_html=True)
 
-        # -----------------------
-        # 만족도
-        # -----------------------
         with sc3:
-            st.markdown("##### 만족도")
+            st.markdown("##### 만족도 점수")
+            st.metric("Score", f"{x_ai['satisfaction_score']}점")
 
-            st.metric("Score", f"{s_score}점")
-
-    # ======================================
-    # 🟣 RIGHT
-    # ======================================
     with right_col:
+        # [실시간 토론 주제]
+        st.markdown("#### 실시간 화제 주제 💬")
+        hot_topics = main_data.get("hot_discussions", [])
+        for topic in hot_topics:
+            st.info(topic) if topic else st.write("-")
 
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # [베스트 꿀팁]
         st.markdown("#### 베스트 꿀팁 💡")
-
-        for t in x_ai["tips"]:
+        for t in x_ai.get("tips", []):
             st.markdown(f"""
-            <div style='background:#1a1b26;padding:10px;border-radius:10px;margin-bottom:10px'>
-                <b>{t['highlight']}</b><br>
-                <span style='font-size:12px;color:#888'>{t['desc']}</span>
-            </div>
+                <div style='background:#1a1b26;padding:12px;border-radius:10px;margin-bottom:10px;border-left:4px solid #00E5FF'>
+                    <b style='color:#00E5FF'>{t.get('highlight', '')}</b><br>
+                    <span style='font-size:12px;color:#d1d5db'>{t.get('desc', '')}</span>
+                </div>
             """, unsafe_allow_html=True)

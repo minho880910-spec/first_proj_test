@@ -151,7 +151,10 @@ def fetch_trend_data(tab_name, main_keyword, category_name=None):
 
     elif tab_name == "X":
         ai_res = get_x_tab_ai_data(main_keyword)
+        
+        # 중요: AI가 준 데이터에서 필요한 부분을 꺼내서 result에 정착시킴
         result['hot_discussions'] = ai_res.get('hot_discussions', [])
+        # x_sentiment 자체가 딕셔너리이므로 그대로 대입
         result['x_sentiment'] = ai_res.get('x_sentiment', {})
 
     st.session_state[state_key] = result
