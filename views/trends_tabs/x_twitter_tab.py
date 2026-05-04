@@ -1,7 +1,7 @@
 import streamlit as st
 import altair as alt
 import pandas as pd
-from .trend_state_manager import fetch_trend_data
+from modules.trend_state_manager import fetch_trend_data
 
 def normalize_x_data(main_data, keyword):
     """데이터가 없거나 구조가 깨졌을 때를 대비한 최종 방어선"""
